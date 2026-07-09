@@ -1,14 +1,13 @@
 import Foundation
 
-public struct FXRate: Equatable, Sendable {
-    public let baseCurrency: Currency
-    public let quoteCurrency: Currency
-    public let rate: Decimal
+struct FXRate: Equatable, Sendable {
+    let baseCurrency: Currency
+    let quoteCurrency: Currency
+    let rate: Decimal
 
-    public init(baseCurrency: Currency, quoteCurrency: Currency, rate: Decimal) {
+    init(baseCurrency: Currency, quoteCurrency: Currency, rate: Decimal) {
         self.baseCurrency = baseCurrency
         self.quoteCurrency = quoteCurrency
         self.rate = rate
     }
 }
-

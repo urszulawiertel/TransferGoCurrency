@@ -1,14 +1,13 @@
 import Foundation
 
-public struct Currency: Equatable, Identifiable, Sendable {
-    public let code: String
+struct Currency: Equatable, Hashable, Identifiable, Sendable {
+    let code: String
 
-    public var id: String {
+    var id: String {
         code
     }
 
-    public init(code: String) {
-        self.code = code
+    init(code: String) {
+        self.code = code.uppercased()
     }
 }
-

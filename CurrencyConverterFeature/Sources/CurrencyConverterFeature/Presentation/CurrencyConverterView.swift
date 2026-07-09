@@ -8,7 +8,7 @@ public struct CurrencyConverterView: View {
         _viewModel = StateObject(wrappedValue: CurrencyConverterViewModel())
     }
 
-    public init(viewModel: CurrencyConverterViewModel) {
+    init(viewModel: CurrencyConverterViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
