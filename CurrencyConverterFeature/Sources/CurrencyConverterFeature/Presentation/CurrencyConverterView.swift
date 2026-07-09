@@ -1,0 +1,22 @@
+import SwiftUI
+
+@MainActor
+public struct CurrencyConverterView: View {
+    @StateObject private var viewModel: CurrencyConverterViewModel
+
+    public init() {
+        _viewModel = StateObject(wrappedValue: CurrencyConverterViewModel())
+    }
+
+    public init(viewModel: CurrencyConverterViewModel) {
+        _viewModel = StateObject(wrappedValue: viewModel)
+    }
+
+    public var body: some View {
+        Text("Currency Converter")
+    }
+}
+
+#Preview {
+    CurrencyConverterView()
+}
