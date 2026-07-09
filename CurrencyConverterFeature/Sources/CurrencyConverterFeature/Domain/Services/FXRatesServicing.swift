@@ -1,5 +1,5 @@
 import Foundation
 
 protocol FXRatesServicing: Sendable {
-    func latestRates(for baseCurrency: Currency) async throws -> [FXRate]
+    func rate(from sourceCurrency: Currency, to targetCurrency: Currency, amount: Decimal) async throws -> FXRate
 }
