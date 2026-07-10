@@ -46,7 +46,7 @@ public struct CurrencyConverterView: View {
             .padding(.vertical, 16)
             .background(
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(.secondarySystemBackground))
+                    .fill(Color.currencyConverterCardBackground)
             )
 
             if let errorState = viewModel.errorState {
@@ -55,10 +55,32 @@ public struct CurrencyConverterView: View {
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color(.systemBackground))
-            .task {
-                await viewModel.load()
-            }
+        .background(Color.currencyConverterScreenBackground)
+        .task {
+            await viewModel.load()
+        }
+    }
+}
+
+private extension Color {
+    static var currencyConverterCardBackground: Color {
+        #if os(iOS)
+        Color(.secondarySystemBackground)
+        #elseif os(macOS)
+        Color(nsColor: .controlBackgroundColor)
+        #else
+        Color.secondary.opacity(0.12)
+        #endif
+    }
+
+    static var currencyConverterScreenBackground: Color {
+        #if os(iOS)
+        Color(.systemBackground)
+        #elseif os(macOS)
+        Color(nsColor: .windowBackgroundColor)
+        #else
+        Color.primary.opacity(0.04)
+        #endif
     }
 }
 

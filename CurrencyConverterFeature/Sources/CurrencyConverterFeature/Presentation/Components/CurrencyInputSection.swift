@@ -26,7 +26,7 @@ struct CurrencyInputSection: View {
                         }
                     )
                 )
-                .keyboardType(.decimalPad)
+                .currencyConverterDecimalKeyboard()
                 .multilineTextAlignment(.trailing)
                 .font(.title3.weight(.semibold))
                 .textFieldStyle(.plain)
@@ -56,5 +56,16 @@ struct CurrencyInputSection: View {
             .frame(minWidth: 76, minHeight: 36, alignment: .leading)
         }
         .accessibilityLabel("\(title) currency")
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func currencyConverterDecimalKeyboard() -> some View {
+        #if os(iOS)
+        keyboardType(.decimalPad)
+        #else
+        self
+        #endif
     }
 }
