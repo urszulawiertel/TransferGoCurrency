@@ -245,6 +245,15 @@ final class CurrencyConverterViewModel: ObservableObject {
 enum CurrencyConverterErrorState: Equatable {
     case sendingLimitExceeded(currency: Currency, limit: Decimal)
     case conversionFailed
+
+    var message: String {
+        switch self {
+        case let .sendingLimitExceeded(currency, limit):
+            return "Maximum sending amount: \(limit.currencyConverterFormatted()) \(currency.code)."
+        case .conversionFailed:
+            return "We couldn't convert this amount. Please try again."
+        }
+    }
 }
 
 private enum ConversionSource {
