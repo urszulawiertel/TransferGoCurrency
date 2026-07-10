@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 struct CurrencyInputSection: View {
     let title: String
+    let currencyAccessibilityLabel: String
     @Binding var selectedCurrency: Currency
     @Binding var amount: Decimal
 
@@ -16,7 +17,7 @@ struct CurrencyInputSection: View {
                 currencySelector
 
                 TextField(
-                    "0",
+                    CurrencyConverterLocalization.string(.amountPlaceholder),
                     text: Binding(
                         get: { amount.currencyConverterFormatted() },
                         set: { newValue in
@@ -55,7 +56,7 @@ struct CurrencyInputSection: View {
             .foregroundStyle(.primary)
             .frame(minWidth: 76, minHeight: 36, alignment: .leading)
         }
-        .accessibilityLabel("\(title) currency")
+        .accessibilityLabel(currencyAccessibilityLabel)
     }
 }
 

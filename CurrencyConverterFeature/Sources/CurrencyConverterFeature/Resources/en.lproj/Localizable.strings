@@ -1,0 +1,9 @@
+"currency_converter.sending_from" = "Sending from";
+"currency_converter.receiver_gets" = "Receiver gets";
+"currency_converter.amount.placeholder" = "0";
+"currency_converter.sending_from.currency.accessibility" = "Sending from currency";
+"currency_converter.receiver_gets.currency.accessibility" = "Receiver gets currency";
+"currency_converter.conversion_rate" = "1 %@ = %@ %@";
+"currency_converter.swap_currencies.accessibility" = "Swap currencies";
+"currency_converter.error.sending_limit_exceeded" = "Maximum sending amount: %@ %@.";
+"currency_converter.error.conversion_failed" = "We couldn't convert this amount. Please try again.";

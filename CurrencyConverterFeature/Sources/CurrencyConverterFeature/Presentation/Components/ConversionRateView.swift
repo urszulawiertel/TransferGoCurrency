@@ -14,7 +14,14 @@ struct ConversionRateView: View {
             }
 
             if let conversionRate {
-                Text("1 \(fromCurrency.code) = \(conversionRate.currencyConverterFormatted(minimumFractionDigits: 2, maximumFractionDigits: 4)) \(toCurrency.code)")
+                Text(
+                    CurrencyConverterLocalization.string(
+                        .conversionRate,
+                        fromCurrency.code,
+                        conversionRate.currencyConverterFormatted(minimumFractionDigits: 2, maximumFractionDigits: 4),
+                        toCurrency.code
+                    )
+                )
             } else {
                 Text(" ")
             }

@@ -12,6 +12,6 @@ struct SwapButton: View {
                 .foregroundStyle(.white)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Swap currencies")
+        .accessibilityLabel(CurrencyConverterLocalization.string(.swapCurrenciesAccessibility))
     }
 }

@@ -16,7 +16,8 @@ public struct CurrencyConverterView: View {
         VStack(alignment: .leading, spacing: 12) {
             VStack(spacing: 16) {
                 CurrencyInputSection(
-                    title: "Sending from",
+                    title: CurrencyConverterLocalization.string(.sendingFrom),
+                    currencyAccessibilityLabel: CurrencyConverterLocalization.string(.sendingFromCurrencyAccessibility),
                     selectedCurrency: $viewModel.fromCurrency,
                     amount: $viewModel.amount
                 )
@@ -37,7 +38,8 @@ public struct CurrencyConverterView: View {
                 }
 
                 CurrencyInputSection(
-                    title: "Receiver gets",
+                    title: CurrencyConverterLocalization.string(.receiverGets),
+                    currencyAccessibilityLabel: CurrencyConverterLocalization.string(.receiverGetsCurrencyAccessibility),
                     selectedCurrency: $viewModel.toCurrency,
                     amount: $viewModel.convertedAmount
                 )

@@ -249,9 +249,13 @@ enum CurrencyConverterErrorState: Equatable {
     var message: String {
         switch self {
         case let .sendingLimitExceeded(currency, limit):
-            return "Maximum sending amount: \(limit.currencyConverterFormatted()) \(currency.code)."
+            return CurrencyConverterLocalization.string(
+                .sendingLimitExceeded,
+                limit.currencyConverterFormatted(),
+                currency.code
+            )
         case .conversionFailed:
-            return "We couldn't convert this amount. Please try again."
+            return CurrencyConverterLocalization.string(.conversionFailed)
         }
     }
 }

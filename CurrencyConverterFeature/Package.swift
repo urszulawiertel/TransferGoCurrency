@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "CurrencyConverterFeature",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v17),
         .macOS(.v14)
@@ -16,7 +17,10 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "CurrencyConverterFeature"
+            name: "CurrencyConverterFeature",
+            resources: [
+                .process("Resources")
+            ]
         ),
         .testTarget(
             name: "CurrencyConverterFeatureTests",
