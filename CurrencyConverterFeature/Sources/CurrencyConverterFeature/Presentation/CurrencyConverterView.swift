@@ -14,6 +14,9 @@ public struct CurrencyConverterView: View {
 
     public var body: some View {
         Text("Currency Converter")
+            .task {
+                await viewModel.load()
+            }
     }
 }
 
