@@ -65,24 +65,8 @@ public struct CurrencyConverterView: View {
             await viewModel.load()
         }
         .sheet(item: $selectionContext) { context in
-            NavigationStack {
-                CurrencySelectionView { supportedCurrency in
-                    select(supportedCurrency.currency, for: context)
-                }
-                .navigationTitle(context.title)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button {
-                            selectionContext = nil
-                        } label: {
-                            Image(systemName: "xmark")
-                        }
-                        .accessibilityLabel(
-                            CurrencyConverterLocalization.string(.currencySelectionClose)
-                        )
-                    }
-                }
+            CurrencySelectionView(title: context.title) { supportedCurrency in
+                select(supportedCurrency.currency, for: context)
             }
         }
     }

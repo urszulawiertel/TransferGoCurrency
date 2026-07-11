@@ -3,23 +3,40 @@ import SwiftUI
 @MainActor
 public struct CurrencySelectionView: View {
     @StateObject private var viewModel: CurrencySelectionViewModel
+    private let title: String
     private let onSelect: (SupportedCurrency) -> Void
 
-    public init(onSelect: @escaping (SupportedCurrency) -> Void = { _ in }) {
+    public init(
+        title: String,
+        onSelect: @escaping (SupportedCurrency) -> Void = { _ in }
+    ) {
         _viewModel = StateObject(wrappedValue: CurrencySelectionViewModel())
+        self.title = title
         self.onSelect = onSelect
     }
 
     init(
         viewModel: CurrencySelectionViewModel,
+        title: String,
         onSelect: @escaping (SupportedCurrency) -> Void = { _ in }
     ) {
         _viewModel = StateObject(wrappedValue: viewModel)
+        self.title = title
         self.onSelect = onSelect
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
+            ZStack {
+                Text(title)
+                    .font(.title2.weight(.bold))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityAddTraits(.isHeader)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 20)
+
             CurrencySearchBar(
                 text: $viewModel.searchText,
                 placeholder: CurrencyConverterLocalization.string(.currencySelectionSearchPlaceholder)
@@ -72,5 +89,7 @@ private extension Color {
 }
 
 #Preview {
-    CurrencySelectionView()
+    CurrencySelectionView(
+        title: CurrencyConverterLocalization.string(.sendingFrom)
+    )
 }
