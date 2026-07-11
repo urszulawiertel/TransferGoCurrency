@@ -32,16 +32,23 @@ public struct CurrencySelectionView: View {
 
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    ForEach(viewModel.filteredCurrencies) { supportedCurrency in
-                        Button {
-                            onSelect(supportedCurrency)
-                        } label: {
-                            CurrencyRowView(
-                                supportedCurrency: supportedCurrency,
-                                currencyName: viewModel.currencyName(for: supportedCurrency)
-                            )
+                    ForEach(Array(viewModel.filteredCurrencies.enumerated()), id: \.element.id) { index, supportedCurrency in
+                        VStack(spacing: 0) {
+                            Button {
+                                onSelect(supportedCurrency)
+                            } label: {
+                                CurrencyRowView(
+                                    supportedCurrency: supportedCurrency,
+                                    currencyName: viewModel.currencyName(for: supportedCurrency)
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            if index < viewModel.filteredCurrencies.count - 1 {
+                                Divider()
+                                    .padding(.leading, 76)
+                            }
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }

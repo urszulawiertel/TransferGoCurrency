@@ -6,32 +6,38 @@ struct CurrencyRowView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            Image(supportedCurrency.currency.flagAssetName, bundle: .module)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 48, height: 48)
-                .clipped()
-                .accessibilityHidden(true)
+            ZStack {
+                Circle()
+                    .fill(Color(red: 237 / 255, green: 240 / 255, blue: 244 / 255))
+
+                Image(supportedCurrency.currency.flagAssetName, bundle: .module)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+                    .accessibilityHidden(true)
+            }
+            .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(supportedCurrency.country)
                     .font(.body.weight(.medium))
                     .foregroundStyle(.primary)
 
-                Text(currencyName)
-                    .font(.subheadline)
+                Text(subtitle)
+                    .font(.body)
                     .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 8)
-
-            Text(supportedCurrency.currency.code)
-                .font(.body.weight(.medium))
-                .foregroundStyle(.primary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(height: 72)
         .contentShape(Rectangle())
+    }
+
+    private var subtitle: String {
+        "\(currencyName) • \(supportedCurrency.currency.code)"
     }
 }

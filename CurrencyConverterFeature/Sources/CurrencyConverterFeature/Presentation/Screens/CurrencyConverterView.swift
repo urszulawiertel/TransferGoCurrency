@@ -70,6 +70,7 @@ public struct CurrencyConverterView: View {
                     select(supportedCurrency.currency, for: context)
                 }
                 .navigationTitle(context.title)
+                .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Button {
