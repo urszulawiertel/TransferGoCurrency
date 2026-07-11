@@ -72,6 +72,50 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: 400)])
     }
 
+    func testFractionalAmountChangeRequestsConversionExactlyOnce() async throws {
+        let fractionalAmount = try XCTUnwrap(Decimal(string: "1000.5"))
+        let service = MockFXRatesService { request in
+            FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: 2,
+                fromAmount: request.amount,
+                toAmount: request.amount * 2
+            )
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        viewModel.amount = fractionalAmount
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.amount, fractionalAmount)
+        XCTAssertEqual(viewModel.convertedAmount, Decimal(string: "2001"))
+        let requests = await service.recordedRequests()
+        XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: fractionalAmount)])
+    }
+
+    func testFractionalConvertedAmountChangeRequestsReverseConversionExactlyOnce() async throws {
+        let fractionalAmount = try XCTUnwrap(Decimal(string: "1000.5"))
+        let service = MockFXRatesService { request in
+            FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: Decimal(string: "0.5")!,
+                fromAmount: request.amount,
+                toAmount: request.amount / 2
+            )
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        viewModel.convertedAmount = fractionalAmount
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.convertedAmount, fractionalAmount)
+        XCTAssertEqual(viewModel.amount, Decimal(string: "500.25"))
+        let requests = await service.recordedRequests()
+        XCTAssertEqual(requests, [.init(from: "UAH", to: "PLN", amount: fractionalAmount)])
+    }
+
     func testConvertedAmountChangeFetchesReverseConversionAndStoresDisplayedRate() async throws {
         let service = MockFXRatesService { request in
             XCTAssertEqual(request, .init(from: "UAH", to: "PLN", amount: 1_500))

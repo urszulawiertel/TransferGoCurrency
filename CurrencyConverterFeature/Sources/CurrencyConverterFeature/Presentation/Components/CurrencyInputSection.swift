@@ -7,6 +7,22 @@ struct CurrencyInputSection: View {
     let selectedCurrency: Currency
     @Binding var amount: Decimal
     let onSelectCurrency: () -> Void
+    @State private var editingState: CurrencyAmountEditingState
+
+    init(
+        title: String,
+        currencyAccessibilityLabel: String,
+        selectedCurrency: Currency,
+        amount: Binding<Decimal>,
+        onSelectCurrency: @escaping () -> Void
+    ) {
+        self.title = title
+        self.currencyAccessibilityLabel = currencyAccessibilityLabel
+        self.selectedCurrency = selectedCurrency
+        _amount = amount
+        self.onSelectCurrency = onSelectCurrency
+        _editingState = State(initialValue: CurrencyAmountEditingState(value: amount.wrappedValue))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -20,10 +36,10 @@ struct CurrencyInputSection: View {
                 TextField(
                     CurrencyConverterLocalization.string(.amountPlaceholder),
                     text: Binding(
-                        get: { amount.currencyConverterFormatted() },
+                        get: { editingState.text },
                         set: { newValue in
-                            if let decimal = Decimal.currencyConverterDecimal(from: newValue) {
-                                amount = decimal
+                            editingState.applyUserEdit(newValue, currentValue: amount) {
+                                amount = $0
                             }
                         }
                     )
@@ -34,6 +50,9 @@ struct CurrencyInputSection: View {
                 .textFieldStyle(.plain)
             }
             .frame(minHeight: 44)
+        }
+        .onChange(of: amount) { _, newAmount in
+            editingState.synchronize(with: newAmount)
         }
     }
 
