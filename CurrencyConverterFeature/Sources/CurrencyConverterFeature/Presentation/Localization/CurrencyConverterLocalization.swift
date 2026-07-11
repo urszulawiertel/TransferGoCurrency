@@ -11,6 +11,14 @@ enum CurrencyConverterLocalization {
         case swapCurrenciesAccessibility = "currency_converter.swap_currencies.accessibility"
         case sendingLimitExceeded = "currency_converter.error.sending_limit_exceeded"
         case conversionFailed = "currency_converter.error.conversion_failed"
+        case currencySelectionSearchPlaceholder = "currency_selection.search.placeholder"
+        case currencySelectionAllCountries = "currency_selection.all_countries"
+        case currencySelectionSendingTo = "currency_selection.sending_to"
+        case currencySelectionClose = "currency_selection.close"
+        case polishZloty = "currency.name.pln"
+        case euro = "currency.name.eur"
+        case britishPound = "currency.name.gbp"
+        case ukrainianHryvnia = "currency.name.uah"
     }
 
     static func string(_ key: Key) -> String {

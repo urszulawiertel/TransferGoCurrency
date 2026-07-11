@@ -4,8 +4,9 @@ import SwiftUI
 struct CurrencyInputSection: View {
     let title: String
     let currencyAccessibilityLabel: String
-    @Binding var selectedCurrency: Currency
+    let selectedCurrency: Currency
     @Binding var amount: Decimal
+    let onSelectCurrency: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -37,16 +38,14 @@ struct CurrencyInputSection: View {
     }
 
     private var currencySelector: some View {
-        Menu {
-            ForEach(SupportedCurrency.all) { supportedCurrency in
-                Button {
-                    selectedCurrency = supportedCurrency.currency
-                } label: {
-                    Text(supportedCurrency.currency.code)
-                }
-            }
-        } label: {
+        Button(action: onSelectCurrency) {
             HStack(spacing: 6) {
+                Image(selectedCurrency.flagAssetName, bundle: .module)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 32, height: 32)
+                    .accessibilityHidden(true)
+
                 Text(selectedCurrency.code)
                     .font(.headline)
 
@@ -54,8 +53,10 @@ struct CurrencyInputSection: View {
                     .font(.caption.weight(.semibold))
             }
             .foregroundStyle(.primary)
-            .frame(minWidth: 76, minHeight: 36, alignment: .leading)
+            .frame(minHeight: 36, alignment: .leading)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel(currencyAccessibilityLabel)
     }
 }

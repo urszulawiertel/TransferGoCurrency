@@ -3,6 +3,7 @@ import SwiftUI
 @MainActor
 public struct CurrencyConverterView: View {
     @StateObject private var viewModel: CurrencyConverterViewModel
+    @State private var selectionContext: CurrencySelectionContext?
 
     public init() {
         _viewModel = StateObject(wrappedValue: CurrencyConverterViewModel())
@@ -18,8 +19,9 @@ public struct CurrencyConverterView: View {
                 CurrencyInputSection(
                     title: CurrencyConverterLocalization.string(.sendingFrom),
                     currencyAccessibilityLabel: CurrencyConverterLocalization.string(.sendingFromCurrencyAccessibility),
-                    selectedCurrency: $viewModel.fromCurrency,
-                    amount: $viewModel.amount
+                    selectedCurrency: viewModel.fromCurrency,
+                    amount: $viewModel.amount,
+                    onSelectCurrency: { selectionContext = .from }
                 )
 
                 HStack(spacing: 12) {
@@ -40,8 +42,9 @@ public struct CurrencyConverterView: View {
                 CurrencyInputSection(
                     title: CurrencyConverterLocalization.string(.receiverGets),
                     currencyAccessibilityLabel: CurrencyConverterLocalization.string(.receiverGetsCurrencyAccessibility),
-                    selectedCurrency: $viewModel.toCurrency,
-                    amount: $viewModel.convertedAmount
+                    selectedCurrency: viewModel.toCurrency,
+                    amount: $viewModel.convertedAmount,
+                    onSelectCurrency: { selectionContext = .to }
                 )
             }
             .padding(.horizontal, 16)
@@ -60,6 +63,53 @@ public struct CurrencyConverterView: View {
         .background(Color.currencyConverterScreenBackground)
         .task {
             await viewModel.load()
+        }
+        .sheet(item: $selectionContext) { context in
+            NavigationStack {
+                CurrencySelectionView { supportedCurrency in
+                    select(supportedCurrency.currency, for: context)
+                }
+                .navigationTitle(context.title)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button {
+                            selectionContext = nil
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
+                        .accessibilityLabel(
+                            CurrencyConverterLocalization.string(.currencySelectionClose)
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private func select(_ currency: Currency, for context: CurrencySelectionContext) {
+        switch context {
+        case .from:
+            viewModel.fromCurrency = currency
+        case .to:
+            viewModel.toCurrency = currency
+        }
+
+        selectionContext = nil
+    }
+}
+
+private enum CurrencySelectionContext: Identifiable {
+    case from
+    case to
+
+    var id: Self { self }
+
+    var title: String {
+        switch self {
+        case .from:
+            CurrencyConverterLocalization.string(.sendingFrom)
+        case .to:
+            CurrencyConverterLocalization.string(.currencySelectionSendingTo)
         }
     }
 }

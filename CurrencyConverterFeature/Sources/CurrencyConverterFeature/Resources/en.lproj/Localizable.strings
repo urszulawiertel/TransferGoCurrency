@@ -7,3 +7,11 @@
 "currency_converter.swap_currencies.accessibility" = "Swap currencies";
 "currency_converter.error.sending_limit_exceeded" = "Maximum sending amount: %@ %@.";
 "currency_converter.error.conversion_failed" = "We couldn't convert this amount. Please try again.";
+"currency_selection.search.placeholder" = "Search";
+"currency_selection.all_countries" = "All countries";
+"currency_selection.sending_to" = "Sending to";
+"currency_selection.close" = "Close";
+"currency.name.pln" = "Polish zloty";
+"currency.name.eur" = "Euro";
+"currency.name.gbp" = "British pound";
+"currency.name.uah" = "Ukrainian hryvnia";

@@ -1,15 +1,15 @@
 import Foundation
 
-struct SupportedCurrency: Equatable, Identifiable, Sendable {
-    let currency: Currency
-    let country: String
-    let sendingLimit: Decimal
+public struct SupportedCurrency: Equatable, Identifiable, Sendable {
+    public let currency: Currency
+    public let country: String
+    public let sendingLimit: Decimal
 
-    var id: String {
+    public var id: String {
         currency.id
     }
 
-    init(currency: Currency, country: String, sendingLimit: Decimal) {
+    public init(currency: Currency, country: String, sendingLimit: Decimal) {
         self.currency = currency
         self.country = country
         self.sendingLimit = sendingLimit
