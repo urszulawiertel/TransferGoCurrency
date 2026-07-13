@@ -1,6 +1,13 @@
 import SwiftUI
 
 enum CurrencyConverterStyle {
+    static let errorForeground = Color(
+        red: 229.0 / 255.0,
+        green: 71.0 / 255.0,
+        blue: 109.0 / 255.0
+    )
+    static let errorBackground = errorForeground.opacity(0.10)
+
     static let sectionBackground = Color(
         red: 237.0 / 255.0,
         green: 240.0 / 255.0,
