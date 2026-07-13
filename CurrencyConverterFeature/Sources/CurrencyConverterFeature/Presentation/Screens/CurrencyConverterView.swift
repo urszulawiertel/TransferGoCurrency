@@ -67,7 +67,8 @@ public struct CurrencyConverterView: View {
             }
             .frame(maxWidth: 320, minHeight: 184, maxHeight: 184)
 
-            if let errorState = viewModel.errorState {
+            if let errorState = viewModel.errorState,
+               errorState != .networkError {
                 ErrorView(errorState: errorState)
             }
         }
@@ -76,6 +77,23 @@ public struct CurrencyConverterView: View {
         .padding(.top, 88)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.currencyConverterScreenBackground)
+        .overlay(alignment: .top) {
+            ZStack(alignment: .top) {
+                if viewModel.isNetworkErrorVisible {
+                    NetworkErrorBanner {
+                        viewModel.dismissNetworkError()
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .transition(
+                        .move(edge: .top)
+                            .combined(with: .opacity)
+                    )
+                    .zIndex(1)
+                }
+            }
+            .animation(.easeOut(duration: 0.2), value: viewModel.isNetworkErrorVisible)
+        }
         .task {
             await viewModel.load()
         }

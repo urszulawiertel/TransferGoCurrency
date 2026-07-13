@@ -539,9 +539,95 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.convertedAmount, 3_010)
     }
 
-    func testServiceFailureExposesErrorState() async throws {
+    func testConnectivityFailuresExposeNetworkErrorState() async throws {
+        for code in [
+            URLError.notConnectedToInternet,
+            .networkConnectionLost
+        ] {
+            let service = MockFXRatesService { _ in
+                throw URLError(code)
+            }
+            let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+            viewModel.amount = 301
+            await waitForIdle(viewModel)
+
+            XCTAssertEqual(viewModel.errorState, .networkError, "Failed for URL error code: \(code)")
+            XCTAssertTrue(viewModel.isNetworkErrorVisible)
+            XCTAssertFalse(viewModel.isLoading)
+        }
+    }
+
+    func testDismissingNetworkErrorClearsOnlyVisibleErrorAndPreservesConversionData() async throws {
+        let service = MockFXRatesService { request in
+            if request.amount == 302 {
+                throw URLError(.notConnectedToInternet)
+            }
+
+            return FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: 10,
+                fromAmount: request.amount,
+                toAmount: request.amount * 10
+            )
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        viewModel.amount = 301
+        await waitForIdle(viewModel)
+        XCTAssertEqual(viewModel.convertedAmount, 3_010)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+
+        viewModel.amount = 302
+        await waitForIdle(viewModel)
+        XCTAssertEqual(viewModel.errorState, .networkError)
+
+        viewModel.dismissNetworkError()
+
+        XCTAssertNil(viewModel.errorState)
+        XCTAssertFalse(viewModel.isNetworkErrorVisible)
+        XCTAssertEqual(viewModel.fromCurrency, Currency(code: "PLN"))
+        XCTAssertEqual(viewModel.toCurrency, Currency(code: "UAH"))
+        XCTAssertEqual(viewModel.amount, 302)
+        XCTAssertEqual(viewModel.convertedAmount, 3_010)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+    }
+
+    func testSuccessfulRequestAfterConnectivityFailureClearsNetworkError() async throws {
+        let service = MockFXRatesService { request in
+            if request.amount == 301 {
+                throw URLError(.networkConnectionLost)
+            }
+
+            return FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: 10,
+                fromAmount: request.amount,
+                toAmount: request.amount * 10
+            )
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        viewModel.amount = 301
+        await waitForIdle(viewModel)
+        XCTAssertEqual(viewModel.errorState, .networkError)
+
+        viewModel.amount = 302
+        XCTAssertEqual(viewModel.errorState, .networkError)
+        await waitForIdle(viewModel)
+
+        XCTAssertNil(viewModel.errorState)
+        XCTAssertEqual(viewModel.convertedAmount, 3_020)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+    }
+
+    func testNonConnectivityServiceFailureDoesNotExposeNetworkError() async throws {
         let service = MockFXRatesService { _ in
-            throw URLError(.notConnectedToInternet)
+            throw DecodingError.dataCorrupted(
+                .init(codingPath: [], debugDescription: "Invalid response")
+            )
         }
         let viewModel = CurrencyConverterViewModel(fxRatesService: service)
 
@@ -549,7 +635,39 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         await waitForIdle(viewModel)
 
         XCTAssertEqual(viewModel.errorState, .conversionFailed)
-        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertFalse(viewModel.isNetworkErrorVisible)
+    }
+
+    func testTimedOutFailureKeepsExistingGenericErrorMapping() async throws {
+        let service = MockFXRatesService { _ in
+            throw URLError(.timedOut)
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        viewModel.amount = 301
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.errorState, .conversionFailed)
+        XCTAssertFalse(viewModel.isNetworkErrorVisible)
+    }
+
+    func testValidationAndSendingLimitErrorsDoNotExposeNetworkError() async throws {
+        let viewModel = CurrencyConverterViewModel(
+            fxRatesService: MockFXRatesService()
+        )
+
+        viewModel.amount = -1
+        await waitForIdle(viewModel)
+        XCTAssertNil(viewModel.errorState)
+        XCTAssertFalse(viewModel.isNetworkErrorVisible)
+
+        viewModel.amount = 20_000.01
+        await waitForIdle(viewModel)
+        XCTAssertEqual(
+            viewModel.errorState,
+            .sendingLimitExceeded(currency: Currency(code: "PLN"), limit: 20_000)
+        )
+        XCTAssertFalse(viewModel.isNetworkErrorVisible)
     }
 
     func testOnlyLatestConversionResultIsApplied() async throws {

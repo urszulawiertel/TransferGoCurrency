@@ -7,6 +7,9 @@
 "currency_converter.swap_currencies.accessibility" = "Swap currencies";
 "currency_converter.error.sending_limit_exceeded" = "Maximum sending amount: %@ %@.";
 "currency_converter.error.conversion_failed" = "We couldn't convert this amount. Please try again.";
+"network_error_title" = "No network";
+"network_error_message" = "Check your internet connection";
+"network_error_dismiss_accessibility" = "Dismiss network error";
 "currency_selection.search.placeholder" = "Search";
 "currency_selection.all_countries" = "All countries";
 "currency_selection.sending_to" = "Sending to";

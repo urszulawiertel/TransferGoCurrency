@@ -39,6 +39,10 @@ final class CurrencyConverterViewModel: ObservableObject {
         return true
     }
 
+    var isNetworkErrorVisible: Bool {
+        errorState == .networkError
+    }
+
     private let fxRatesService: FXRatesServicing
     private let validator: CurrencyLimitValidator
     private var conversionTask: Task<Void, Never>?
@@ -86,6 +90,14 @@ final class CurrencyConverterViewModel: ObservableObject {
         currencyPairDidChange()
     }
 
+    func dismissNetworkError() {
+        guard errorState == .networkError else {
+            return
+        }
+
+        errorState = nil
+    }
+
     private func fetchConversionIfNeeded(source: ConversionSource) {
         guard !isApplyingConversionResult else {
             return
@@ -129,7 +141,7 @@ final class CurrencyConverterViewModel: ObservableObject {
         }
 
         isLoading = true
-        errorState = nil
+        clearNonNetworkError()
 
         start(makeConversionRequest(source: source))
     }
@@ -151,6 +163,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                 apply(rate: rate, source: source)
             case .referenceRate:
                 conversionRate = rate.rate
+                errorState = nil
             }
             isLoading = false
         } catch is CancellationError {
@@ -160,13 +173,14 @@ final class CurrencyConverterViewModel: ObservableObject {
                 return
             }
 
-            errorState = .conversionFailed
+            errorState = CurrencyConverterErrorState(error: error)
             isLoading = false
         }
     }
 
     private func apply(rate: FXRate, source: ConversionSource) {
         isApplyingConversionResult = true
+        errorState = nil
 
         switch source {
         case .sendingAmount:
@@ -243,7 +257,7 @@ final class CurrencyConverterViewModel: ObservableObject {
 
         invalidatePendingRequest()
         isLoading = true
-        errorState = nil
+        clearNonNetworkError()
 
         start(
             ConversionRequest(
@@ -266,6 +280,14 @@ final class CurrencyConverterViewModel: ObservableObject {
     private func invalidatePendingRequest() {
         conversionTask?.cancel()
         latestRequestID = nil
+    }
+
+    private func clearNonNetworkError() {
+        guard errorState != .networkError else {
+            return
+        }
+
+        errorState = nil
     }
 
     private func displayedRate(fromReversedRate rate: Decimal) -> Decimal? {
@@ -304,7 +326,22 @@ final class CurrencyConverterViewModel: ObservableObject {
 
 enum CurrencyConverterErrorState: Equatable {
     case sendingLimitExceeded(currency: Currency, limit: Decimal)
+    case networkError
     case conversionFailed
+
+    init(error: Error) {
+        guard let urlError = error as? URLError else {
+            self = .conversionFailed
+            return
+        }
+
+        switch urlError.code {
+        case .notConnectedToInternet, .networkConnectionLost:
+            self = .networkError
+        default:
+            self = .conversionFailed
+        }
+    }
 
     var message: String {
         switch self {
@@ -314,6 +351,8 @@ enum CurrencyConverterErrorState: Equatable {
                 limit.currencyConverterFormatted(),
                 currency.code
             )
+        case .networkError:
+            return CurrencyConverterLocalization.string(.networkErrorMessage)
         case .conversionFailed:
             return CurrencyConverterLocalization.string(.conversionFailed)
         }

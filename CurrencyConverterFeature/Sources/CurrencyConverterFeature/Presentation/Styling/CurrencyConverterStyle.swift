@@ -14,6 +14,19 @@ enum CurrencyConverterStyle {
     )
     static let errorBackground = errorForeground.opacity(0.10)
 
+    static let networkErrorBackground = Color.white
+    static let networkErrorTitle = Color.black
+    static let networkErrorMessage = Color(
+        red: 108.0 / 255.0,
+        green: 114.0 / 255.0,
+        blue: 122.0 / 255.0
+    )
+    static let networkErrorShadow = Color(
+        red: 0,
+        green: 26.0 / 255.0,
+        blue: 63.0 / 255.0
+    ).opacity(0.16)
+
     static let sectionBackground = Color(
         red: 237.0 / 255.0,
         green: 240.0 / 255.0,
