@@ -37,7 +37,7 @@ final class URLSessionFXRatesService: FXRatesServicing {
         components?.queryItems = [
             URLQueryItem(name: "from", value: sourceCurrency.code),
             URLQueryItem(name: "to", value: targetCurrency.code),
-            URLQueryItem(name: "amount", value: NSDecimalNumber(decimal: amount).stringValue)
+            URLQueryItem(name: "amount", value: amount.fxRatesAPIString)
         ]
 
         guard let url = components?.url else {
@@ -90,6 +90,14 @@ final class URLSessionFXRatesService: FXRatesServicing {
         throw DecodingError.keyNotFound(
             AnyCodingKey(stringValue: key),
             DecodingError.Context(codingPath: [], debugDescription: "Missing decimal value for \(key).")
+        )
+    }
+}
+
+private extension Decimal {
+    var fxRatesAPIString: String {
+        NSDecimalNumber(decimal: self).description(
+            withLocale: Locale(identifier: "en_US_POSIX")
         )
     }
 }

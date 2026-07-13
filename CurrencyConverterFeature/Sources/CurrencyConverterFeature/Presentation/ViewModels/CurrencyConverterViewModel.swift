@@ -5,13 +5,13 @@ import Foundation
 final class CurrencyConverterViewModel: ObservableObject {
     @Published var fromCurrency: Currency {
         didSet {
-            fetchConversionIfNeeded(source: .sendingAmount)
+            currencyPairDidChange()
         }
     }
 
     @Published var toCurrency: Currency {
         didSet {
-            fetchConversionIfNeeded(source: .sendingAmount)
+            currencyPairDidChange()
         }
     }
 
@@ -30,6 +30,14 @@ final class CurrencyConverterViewModel: ObservableObject {
     @Published private(set) var isLoading = false
     @Published private(set) var errorState: CurrencyConverterErrorState?
     @Published private(set) var conversionRate: Decimal?
+
+    var isSendingLimitExceeded: Bool {
+        guard case .sendingLimitExceeded = errorState else {
+            return false
+        }
+
+        return true
+    }
 
     private let fxRatesService: FXRatesServicing
     private let validator: CurrencyLimitValidator
@@ -75,7 +83,7 @@ final class CurrencyConverterViewModel: ObservableObject {
         convertedAmount = previousAmount
         isApplyingConversionResult = false
 
-        fetchConversionIfNeeded(source: .sendingAmount)
+        currencyPairDidChange()
     }
 
     private func fetchConversionIfNeeded(source: ConversionSource) {
@@ -83,13 +91,19 @@ final class CurrencyConverterViewModel: ObservableObject {
             return
         }
 
-        conversionTask?.cancel()
-        latestRequestID = nil
+        invalidatePendingRequest()
 
         let activeAmount = activeAmount(for: source)
 
-        guard activeAmount > 0 else {
+        guard activeAmount != 0 else {
             clearConversionState(source: source)
+            return
+        }
+
+        guard activeAmount > 0 else {
+            isLoading = false
+            errorState = nil
+            clearStaleConversionData(source: source)
             return
         }
 
@@ -108,7 +122,6 @@ final class CurrencyConverterViewModel: ObservableObject {
                     currency: fromCurrency,
                     limit: sendingLimit
                 )
-                clearStaleConversionData(source: source)
                 return
             }
         case .receivingAmount:
@@ -118,11 +131,7 @@ final class CurrencyConverterViewModel: ObservableObject {
         isLoading = true
         errorState = nil
 
-        let request = makeConversionRequest(source: source)
-        latestRequestID = request.id
-        conversionTask = Task { [weak self] in
-            await self?.fetchConversion(request)
-        }
+        start(makeConversionRequest(source: source))
     }
 
     private func fetchConversion(_ request: ConversionRequest) async {
@@ -137,7 +146,12 @@ final class CurrencyConverterViewModel: ObservableObject {
                 return
             }
 
-            apply(rate: rate, source: request.source)
+            switch request.purpose {
+            case let .conversion(source):
+                apply(rate: rate, source: source)
+            case .referenceRate:
+                conversionRate = rate.rate
+            }
             isLoading = false
         } catch is CancellationError {
             return
@@ -191,10 +205,15 @@ final class CurrencyConverterViewModel: ObservableObject {
     private func clearConversionState(source: ConversionSource) {
         isLoading = false
         errorState = nil
-        clearStaleConversionData(source: source)
+        clearCalculatedAmount(source: source)
     }
 
     private func clearStaleConversionData(source: ConversionSource) {
+        clearCalculatedAmount(source: source)
+        conversionRate = nil
+    }
+
+    private func clearCalculatedAmount(source: ConversionSource) {
         isApplyingConversionResult = true
 
         switch source {
@@ -204,8 +223,49 @@ final class CurrencyConverterViewModel: ObservableObject {
             amount = 0
         }
 
-        conversionRate = nil
         isApplyingConversionResult = false
+    }
+
+    private func currencyPairDidChange() {
+        conversionRate = nil
+
+        if amount == 0 {
+            fetchReferenceRate()
+        } else {
+            fetchConversionIfNeeded(source: .sendingAmount)
+        }
+    }
+
+    private func fetchReferenceRate() {
+        guard !isApplyingConversionResult else {
+            return
+        }
+
+        invalidatePendingRequest()
+        isLoading = true
+        errorState = nil
+
+        start(
+            ConversionRequest(
+                id: UUID(),
+                fromCurrency: fromCurrency,
+                toCurrency: toCurrency,
+                amount: 1,
+                purpose: .referenceRate
+            )
+        )
+    }
+
+    private func start(_ request: ConversionRequest) {
+        latestRequestID = request.id
+        conversionTask = Task { [weak self] in
+            await self?.fetchConversion(request)
+        }
+    }
+
+    private func invalidatePendingRequest() {
+        conversionTask?.cancel()
+        latestRequestID = nil
     }
 
     private func displayedRate(fromReversedRate rate: Decimal) -> Decimal? {
@@ -228,7 +288,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                 fromCurrency: fromCurrency,
                 toCurrency: toCurrency,
                 amount: amount,
-                source: source
+                purpose: .conversion(source)
             )
         case .receivingAmount:
             return ConversionRequest(
@@ -236,7 +296,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                 fromCurrency: toCurrency,
                 toCurrency: fromCurrency,
                 amount: convertedAmount,
-                source: source
+                purpose: .conversion(source)
             )
         }
     }
@@ -270,5 +330,10 @@ private struct ConversionRequest {
     let fromCurrency: Currency
     let toCurrency: Currency
     let amount: Decimal
-    let source: ConversionSource
+    let purpose: ConversionRequestPurpose
+}
+
+private enum ConversionRequestPurpose {
+    case conversion(ConversionSource)
+    case referenceRate
 }

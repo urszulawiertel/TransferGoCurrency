@@ -27,6 +27,7 @@ public struct CurrencyConverterView: View {
                         selectedCurrency: viewModel.fromCurrency,
                         amount: $viewModel.amount,
                         style: .sending,
+                        showsSendingLimitError: viewModel.isSendingLimitExceeded,
                         onSelectCurrency: { selectionContext = .from }
                     )
                     .background(

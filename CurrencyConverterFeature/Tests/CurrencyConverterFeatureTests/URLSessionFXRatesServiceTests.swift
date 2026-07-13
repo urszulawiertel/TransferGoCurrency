@@ -64,6 +64,45 @@ final class URLSessionFXRatesServiceTests: XCTestCase {
         )
     }
 
+    func testRateSerializesFractionalDecimalWithDotAndWithoutGrouping() async throws {
+        let service = URLSessionFXRatesService(urlSession: makeURLSession())
+        let responseData = Data(
+            """
+            {
+              "from": "PLN",
+              "to": "EUR",
+              "rate": "1",
+              "fromAmount": "1234567.89",
+              "toAmount": "1234567.89"
+            }
+            """.utf8
+        )
+
+        MockURLProtocol.requestHandler = { request in
+            let url = try XCTUnwrap(request.url)
+            let components = try XCTUnwrap(URLComponents(url: url, resolvingAgainstBaseURL: false))
+            let queryItems = Self.queryItems(from: components)
+
+            XCTAssertEqual(queryItems["amount"], "1234567.89")
+
+            let response = try XCTUnwrap(
+                HTTPURLResponse(
+                    url: url,
+                    statusCode: 200,
+                    httpVersion: nil,
+                    headerFields: nil
+                )
+            )
+            return (response, responseData)
+        }
+
+        _ = try await service.rate(
+            from: Currency(code: "PLN"),
+            to: Currency(code: "EUR"),
+            amount: try Self.decimal("1234567.89")
+        )
+    }
+
     func testRateThrowsStatusCodeErrorForUnsuccessfulResponse() async throws {
         let service = URLSessionFXRatesService(urlSession: makeURLSession())
 

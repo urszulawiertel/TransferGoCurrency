@@ -1,6 +1,12 @@
 import SwiftUI
 
 enum CurrencyConverterStyle {
+    static let sendingLimitError = Color(
+        red: 248.0 / 255.0,
+        green: 50.0 / 255.0,
+        blue: 106.0 / 255.0
+    )
+
     static let errorForeground = Color(
         red: 229.0 / 255.0,
         green: 71.0 / 255.0,

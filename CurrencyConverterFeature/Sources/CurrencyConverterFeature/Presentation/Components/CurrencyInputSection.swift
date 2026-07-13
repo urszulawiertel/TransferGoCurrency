@@ -21,6 +21,7 @@ struct CurrencyInputSection: View {
     let selectedCurrency: Currency
     @Binding var amount: Decimal
     let style: Style
+    let showsSendingLimitError: Bool
     let onSelectCurrency: () -> Void
     @State private var editingState: CurrencyAmountEditingState
 
@@ -30,6 +31,7 @@ struct CurrencyInputSection: View {
         selectedCurrency: Currency,
         amount: Binding<Decimal>,
         style: Style,
+        showsSendingLimitError: Bool = false,
         onSelectCurrency: @escaping () -> Void
     ) {
         self.title = title
@@ -37,6 +39,7 @@ struct CurrencyInputSection: View {
         self.selectedCurrency = selectedCurrency
         _amount = amount
         self.style = style
+        self.showsSendingLimitError = showsSendingLimitError
         self.onSelectCurrency = onSelectCurrency
         _editingState = State(initialValue: CurrencyAmountEditingState(value: amount.wrappedValue))
     }
@@ -64,7 +67,7 @@ struct CurrencyInputSection: View {
                 .currencyConverterDecimalKeyboard()
                 .multilineTextAlignment(.trailing)
                 .font(.system(size: 30, weight: .semibold))
-                .foregroundStyle(style.amountColor)
+                .foregroundStyle(amountColor)
                 .textFieldStyle(.plain)
             }
             .frame(minHeight: 44)
@@ -72,9 +75,19 @@ struct CurrencyInputSection: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, minHeight: 92, maxHeight: 92, alignment: .leading)
+        .overlay {
+            if showsSendingLimitError {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(CurrencyConverterStyle.sendingLimitError, lineWidth: 1)
+            }
+        }
         .onChange(of: amount) { _, newAmount in
             editingState.synchronize(with: newAmount)
         }
+    }
+
+    private var amountColor: Color {
+        showsSendingLimitError ? CurrencyConverterStyle.sendingLimitError : style.amountColor
     }
 
     private var currencySelector: some View {
