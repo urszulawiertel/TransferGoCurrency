@@ -1,6 +1,6 @@
 import Foundation
 
-struct FXRate: Equatable, Sendable {
+public struct FXRate: Equatable, Sendable {
     let fromCurrency: Currency
     let toCurrency: Currency
     let rate: Decimal

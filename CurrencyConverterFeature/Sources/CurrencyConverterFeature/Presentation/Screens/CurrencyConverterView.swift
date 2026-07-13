@@ -9,6 +9,12 @@ public struct CurrencyConverterView: View {
         _viewModel = StateObject(wrappedValue: CurrencyConverterViewModel())
     }
 
+    public init(fxRatesService: FXRatesServicing) {
+        _viewModel = StateObject(
+            wrappedValue: CurrencyConverterViewModel(fxRatesService: fxRatesService)
+        )
+    }
+
     init(viewModel: CurrencyConverterViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
