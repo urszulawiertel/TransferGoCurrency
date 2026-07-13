@@ -7,10 +7,12 @@ struct ConversionRateView: View {
     let isLoading: Bool
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             if isLoading {
                 ProgressView()
                     .controlSize(.small)
+                    .tint(.white)
+                    .scaleEffect(0.65)
             }
 
             if let conversionRate {
@@ -26,8 +28,13 @@ struct ConversionRateView: View {
                 Text(" ")
             }
         }
-        .font(.footnote.weight(.medium))
-        .foregroundStyle(.secondary)
-        .frame(minHeight: 44, alignment: .center)
+        .font(.system(size: 10, weight: .semibold))
+        .foregroundStyle(.white)
+        .padding(.horizontal, 8)
+        .frame(height: 18, alignment: .center)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(.black)
+        )
     }
 }

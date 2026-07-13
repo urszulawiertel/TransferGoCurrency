@@ -2,10 +2,25 @@ import SwiftUI
 
 @MainActor
 struct CurrencyInputSection: View {
+    enum Style {
+        case sending
+        case receiving
+
+        var amountColor: Color {
+            switch self {
+            case .sending:
+                CurrencyConverterStyle.primaryBlue
+            case .receiving:
+                .black
+            }
+        }
+    }
+
     let title: String
     let currencyAccessibilityLabel: String
     let selectedCurrency: Currency
     @Binding var amount: Decimal
+    let style: Style
     let onSelectCurrency: () -> Void
     @State private var editingState: CurrencyAmountEditingState
 
@@ -14,21 +29,23 @@ struct CurrencyInputSection: View {
         currencyAccessibilityLabel: String,
         selectedCurrency: Currency,
         amount: Binding<Decimal>,
+        style: Style,
         onSelectCurrency: @escaping () -> Void
     ) {
         self.title = title
         self.currencyAccessibilityLabel = currencyAccessibilityLabel
         self.selectedCurrency = selectedCurrency
         _amount = amount
+        self.style = style
         self.onSelectCurrency = onSelectCurrency
         _editingState = State(initialValue: CurrencyAmountEditingState(value: amount.wrappedValue))
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.system(size: 14, weight: .regular))
+                .foregroundStyle(CurrencyConverterStyle.secondaryLabel)
 
             HStack(spacing: 12) {
                 currencySelector
@@ -46,11 +63,15 @@ struct CurrencyInputSection: View {
                 )
                 .currencyConverterDecimalKeyboard()
                 .multilineTextAlignment(.trailing)
-                .font(.title3.weight(.semibold))
+                .font(.system(size: 30, weight: .semibold))
+                .foregroundStyle(style.amountColor)
                 .textFieldStyle(.plain)
             }
             .frame(minHeight: 44)
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, minHeight: 92, maxHeight: 92, alignment: .leading)
         .onChange(of: amount) { _, newAmount in
             editingState.synchronize(with: newAmount)
         }
@@ -66,10 +87,11 @@ struct CurrencyInputSection: View {
                     .accessibilityHidden(true)
 
                 Text(selectedCurrency.code)
-                    .font(.headline)
+                    .font(.body.weight(.bold))
 
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
+                    .foregroundStyle(CurrencyConverterStyle.secondaryLabel)
             }
             .foregroundStyle(.primary)
             .frame(minHeight: 36, alignment: .leading)

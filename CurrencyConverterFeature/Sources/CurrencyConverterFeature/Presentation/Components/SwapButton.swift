@@ -6,10 +6,11 @@ struct SwapButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "arrow.up.arrow.down")
-                .font(.headline.weight(.semibold))
-                .frame(width: 44, height: 44)
-                .background(Circle().fill(Color.accentColor))
+                .font(.system(size: 10, weight: .semibold))
+                .frame(width: 24, height: 24)
+                .background(Circle().fill(CurrencyConverterStyle.primaryBlue))
                 .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(CurrencyConverterLocalization.string(.swapCurrenciesAccessibility))

@@ -14,6 +14,7 @@
 /* Begin PBXFileReference section */
 		1A2B3C4D5E6F700000000005 /* TransferGoCurrencyApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransferGoCurrencyApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1A2B3C4D5E6F700000000002 /* TransferGoCurrencyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransferGoCurrencyApp.swift; sourceTree = "<group>"; };
+		1A2B3C4D5E6F700000000016 /* CurrencyConverterStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CurrencyConverterStyle.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -32,6 +33,7 @@
 			isa = PBXGroup;
 			children = (
 				1A2B3C4D5E6F700000000008 /* TransferGoCurrencyApp */,
+				1A2B3C4D5E6F700000000017 /* Styling */,
 				1A2B3C4D5E6F700000000009 /* Products */,
 				1A2B3C4D5E6F70000000000A /* Frameworks */,
 			);
@@ -59,6 +61,14 @@
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
+		};
+		1A2B3C4D5E6F700000000017 /* Styling */ = {
+			isa = PBXGroup;
+			children = (
+				1A2B3C4D5E6F700000000016 /* CurrencyConverterStyle.swift */,
+			);
+			path = CurrencyConverterFeature/Sources/CurrencyConverterFeature/Presentation/Styling;
+			sourceTree = SOURCE_ROOT;
 		};
 /* End PBXGroup section */
 
@@ -354,4 +364,3 @@
 	};
 	rootObject = 1A2B3C4D5E6F70000000000F /* Project object */;
 }
-

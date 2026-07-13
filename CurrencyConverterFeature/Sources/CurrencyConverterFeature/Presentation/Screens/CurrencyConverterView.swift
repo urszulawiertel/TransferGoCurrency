@@ -15,50 +15,64 @@ public struct CurrencyConverterView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            VStack(spacing: 16) {
-                CurrencyInputSection(
-                    title: CurrencyConverterLocalization.string(.sendingFrom),
-                    currencyAccessibilityLabel: CurrencyConverterLocalization.string(.sendingFromCurrencyAccessibility),
-                    selectedCurrency: viewModel.fromCurrency,
-                    amount: $viewModel.amount,
-                    onSelectCurrency: { selectionContext = .from }
-                )
+            ZStack(alignment: .topLeading) {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(CurrencyConverterStyle.sectionBackground)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                HStack(spacing: 12) {
-                    ConversionRateView(
-                        fromCurrency: viewModel.fromCurrency,
-                        toCurrency: viewModel.toCurrency,
-                        conversionRate: viewModel.conversionRate,
-                        isLoading: viewModel.isLoading
+                VStack(spacing: 0) {
+                    CurrencyInputSection(
+                        title: CurrencyConverterLocalization.string(.sendingFrom),
+                        currencyAccessibilityLabel: CurrencyConverterLocalization.string(.sendingFromCurrencyAccessibility),
+                        selectedCurrency: viewModel.fromCurrency,
+                        amount: $viewModel.amount,
+                        style: .sending,
+                        onSelectCurrency: { selectionContext = .from }
+                    )
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(.white)
+                    )
+                    .shadow(
+                        color: .black.opacity(0.10),
+                        radius: 8,
+                        x: 0,
+                        y: 2
                     )
 
-                    Spacer(minLength: 12)
-
-                    SwapButton {
-                        viewModel.swapCurrencies()
-                    }
+                    CurrencyInputSection(
+                        title: CurrencyConverterLocalization.string(.receiverGets),
+                        currencyAccessibilityLabel: CurrencyConverterLocalization.string(.receiverGetsCurrencyAccessibility),
+                        selectedCurrency: viewModel.toCurrency,
+                        amount: $viewModel.convertedAmount,
+                        style: .receiving,
+                        onSelectCurrency: { selectionContext = .to }
+                    )
                 }
 
-                CurrencyInputSection(
-                    title: CurrencyConverterLocalization.string(.receiverGets),
-                    currencyAccessibilityLabel: CurrencyConverterLocalization.string(.receiverGetsCurrencyAccessibility),
-                    selectedCurrency: viewModel.toCurrency,
-                    amount: $viewModel.convertedAmount,
-                    onSelectCurrency: { selectionContext = .to }
+                SwapButton {
+                    viewModel.swapCurrencies()
+                }
+                // The 44-point hit target extends 10 points beyond the visible circle.
+                .offset(x: 34, y: 70)
+
+                ConversionRateView(
+                    fromCurrency: viewModel.fromCurrency,
+                    toCurrency: viewModel.toCurrency,
+                    conversionRate: viewModel.conversionRate,
+                    isLoading: viewModel.isLoading
                 )
+                .offset(x: 110, y: 83)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 16)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color.currencyConverterCardBackground)
-            )
+            .frame(maxWidth: 320, minHeight: 184, maxHeight: 184)
 
             if let errorState = viewModel.errorState {
                 ErrorView(errorState: errorState)
             }
         }
-        .padding(16)
+        .frame(maxWidth: 320, alignment: .leading)
+        .padding(.horizontal, 20)
+        .padding(.top, 88)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.currencyConverterScreenBackground)
         .task {
@@ -100,16 +114,6 @@ private enum CurrencySelectionContext: Identifiable {
 }
 
 private extension Color {
-    static var currencyConverterCardBackground: Color {
-        #if os(iOS)
-        Color(.secondarySystemBackground)
-        #elseif os(macOS)
-        Color(nsColor: .controlBackgroundColor)
-        #else
-        Color.secondary.opacity(0.12)
-        #endif
-    }
-
     static var currencyConverterScreenBackground: Color {
         #if os(iOS)
         Color(.systemBackground)
