@@ -19,11 +19,11 @@ struct NetworkErrorBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(CurrencyConverterLocalization.string(.networkErrorTitle))
                     .font(.system(size: titleFontSize, weight: .bold))
-                    .foregroundStyle(CurrencyConverterStyle.networkErrorTitle)
+                    .foregroundStyle(.black)
 
                 Text(CurrencyConverterLocalization.string(.networkErrorMessage))
                     .font(.system(size: messageFontSize, weight: .regular))
-                    .foregroundStyle(CurrencyConverterStyle.networkErrorMessage)
+                    .foregroundStyle(CurrencyConverterStyle.secondaryText)
             }
             .fixedSize(horizontal: false, vertical: true)
 
@@ -32,7 +32,7 @@ struct NetworkErrorBanner: View {
             Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: dismissIconSize, weight: .semibold))
-                    .foregroundStyle(CurrencyConverterStyle.networkErrorMessage)
+                    .foregroundStyle(CurrencyConverterStyle.secondaryText)
                     .frame(width: titleLineHeight, height: titleLineHeight)
                     .padding(.top, 1)
                     .frame(minWidth: 44, minHeight: 44, alignment: .top)
@@ -47,7 +47,7 @@ struct NetworkErrorBanner: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(CurrencyConverterStyle.networkErrorBackground)
+                .fill(.white)
         )
         .shadow(
             color: CurrencyConverterStyle.networkErrorShadow,

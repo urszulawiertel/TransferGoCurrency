@@ -23,7 +23,7 @@ public struct CurrencyConverterView: View {
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topLeading) {
                 RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(CurrencyConverterStyle.sectionBackground)
+                    .fill(CurrencyConverterStyle.secondarySurface)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 VStack(spacing: 0) {
@@ -82,7 +82,7 @@ public struct CurrencyConverterView: View {
         .padding(.horizontal, 20)
         .padding(.top, 88)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.currencyConverterScreenBackground)
+        .background(CurrencyConverterStyle.screenBackground)
         .overlay(alignment: .top) {
             ZStack(alignment: .top) {
                 if viewModel.isNetworkErrorVisible {
@@ -135,18 +135,6 @@ private enum CurrencySelectionContext: Identifiable {
         case .to:
             CurrencyConverterLocalization.string(.currencySelectionSendingTo)
         }
-    }
-}
-
-private extension Color {
-    static var currencyConverterScreenBackground: Color {
-        #if os(iOS)
-        Color(.systemBackground)
-        #elseif os(macOS)
-        Color(nsColor: .windowBackgroundColor)
-        #else
-        Color.primary.opacity(0.04)
-        #endif
     }
 }
 

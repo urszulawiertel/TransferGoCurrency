@@ -9,7 +9,7 @@ struct CurrencyInputSection: View {
         var amountColor: Color {
             switch self {
             case .sending:
-                CurrencyConverterStyle.primaryBlue
+                CurrencyConverterStyle.brandAccent
             case .receiving:
                 .black
             }
@@ -48,7 +48,7 @@ struct CurrencyInputSection: View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
                 .font(.system(size: 14, weight: .regular))
-                .foregroundStyle(CurrencyConverterStyle.secondaryLabel)
+                .foregroundStyle(CurrencyConverterStyle.secondaryText)
 
             HStack(spacing: 12) {
                 currencySelector
@@ -104,7 +104,7 @@ struct CurrencyInputSection: View {
 
                 Image(systemName: "chevron.down")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(CurrencyConverterStyle.secondaryLabel)
+                    .foregroundStyle(CurrencyConverterStyle.secondaryText)
             }
             .foregroundStyle(.primary)
             .frame(minHeight: 36, alignment: .leading)

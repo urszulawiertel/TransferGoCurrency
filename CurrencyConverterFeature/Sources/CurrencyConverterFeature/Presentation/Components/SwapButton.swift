@@ -8,7 +8,7 @@ struct SwapButton: View {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 10, weight: .semibold))
                 .frame(width: 24, height: 24)
-                .background(Circle().fill(CurrencyConverterStyle.primaryBlue))
+                .background(Circle().fill(CurrencyConverterStyle.brandAccent))
                 .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
         }

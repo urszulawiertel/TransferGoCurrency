@@ -8,7 +8,7 @@ struct CurrencyRowView: View {
         HStack(spacing: 12) {
             ZStack {
                 Circle()
-                    .fill(Color(red: 237 / 255, green: 240 / 255, blue: 244 / 255))
+                    .fill(CurrencyConverterStyle.secondarySurface)
 
                 Image(supportedCurrency.currency.flagAssetName, bundle: .module)
                     .resizable()

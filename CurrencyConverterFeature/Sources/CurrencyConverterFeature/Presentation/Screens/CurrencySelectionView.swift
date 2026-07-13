@@ -72,19 +72,7 @@ public struct CurrencySelectionView: View {
         }
         .padding(.top, 16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.currencySelectionBackground)
-    }
-}
-
-private extension Color {
-    static var currencySelectionBackground: Color {
-        #if os(iOS)
-        Color(.systemBackground)
-        #elseif os(macOS)
-        Color(nsColor: .windowBackgroundColor)
-        #else
-        Color.primary.opacity(0.04)
-        #endif
+        .background(CurrencyConverterStyle.screenBackground)
     }
 }
 
