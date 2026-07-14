@@ -10,6 +10,7 @@ enum CurrencyConverterLocalization {
         case conversionRate = "currency_converter.conversion_rate"
         case swapCurrenciesAccessibility = "currency_converter.swap_currencies.accessibility"
         case sendingLimitExceeded = "currency_converter.error.sending_limit_exceeded"
+        case fractionalAmountNotSupported = "currency_converter.error.fractional_amount_not_supported"
         case conversionFailed = "currency_converter.error.conversion_failed"
         case networkErrorTitle = "network_error_title"
         case networkErrorMessage = "network_error_message"

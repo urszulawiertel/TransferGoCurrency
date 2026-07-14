@@ -117,7 +117,7 @@ Screenshots/
 ## Key implementation decisions
 
 - **`Decimal` for monetary values:** avoids binary floating-point rounding in amounts, limits, and decoded rates.
-- **Locale-aware editing:** input uses the current locale's decimal separator, avoids grouping while editing, and accepts up to two fractional digits.
+- **Locale-aware editing:** input uses the current locale's decimal separator and avoids grouping while editing. Fractional input is shown with validation but is not sent to the integer-only FX endpoint.
 - **Stable API serialization:** request amounts use an `en_US_POSIX` representation, independent of the device locale.
 - **Latest-request wins:** a new edit or currency change cancels the previous task, and request identifiers prevent stale responses from updating state.
 - **Explicit state:** the converter ViewModel exposes loading, conversion-rate, and typed error state to keep Views presentation-focused.
@@ -127,7 +127,7 @@ Screenshots/
 
 ## Error handling
 
-- **Invalid sending amount:** invalid locale input is rejected by the editing formatter. Non-positive values do not trigger an API request or a sending-limit error.
+- **Invalid amount:** invalid locale input is rejected by the editing formatter. Fractional values are retained for correction, show a whole-amount validation error, preserve the last successful conversion, and do not trigger an API request. Non-positive values do not trigger an API request or a sending-limit error.
 - **Sending limit exceeded:** the ViewModel exposes the currency-specific limit error and skips a new forward request; the last successful conversion remains visible. Reverse conversions validate the resulting sending amount after the response.
 - **Network or conversion failure:** offline and lost-connection errors show a dismissible network banner. Other service, response, or decoding failures show a generic inline conversion error.
 - **Cancelled or stale request:** cancellation is ignored, and only the latest request may update displayed state.
@@ -150,9 +150,7 @@ There are no UI or snapshot tests and no coverage percentage is claimed.
 
 ## Known API behavior
 
-During manual testing the API appeared to truncate fractional amounts despite the contract describing `amount` as a float.
-
-The client preserves values as `Decimal` and sends locale-independent decimal strings. The observed behavior appears to originate from the backend response.
+Live verification showed that the API truncates fractional amounts for every supported directed currency pair. The client therefore accepts only whole amounts for conversion and rejects fractional values before networking rather than displaying a result calculated for a different amount.
 
 ## Trade-offs and scope
 
