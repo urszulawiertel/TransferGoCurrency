@@ -47,6 +47,7 @@ final class CurrencyConverterViewModel: ObservableObject {
     private let validator: CurrencyLimitValidator
     private var conversionTask: Task<Void, Never>?
     private var latestRequestID: UUID?
+    private var latestBackendRate: FXRate?
     private var isApplyingConversionResult = false
     private var hasLoaded = false
 
@@ -78,7 +79,9 @@ final class CurrencyConverterViewModel: ObservableObject {
     }
 
     func swapCurrencies() {
+        invalidatePendingRequest()
         isApplyingConversionResult = true
+
         let previousFromCurrency = fromCurrency
         fromCurrency = toCurrency
         toCurrency = previousFromCurrency
@@ -86,9 +89,14 @@ final class CurrencyConverterViewModel: ObservableObject {
         let previousAmount = amount
         amount = convertedAmount
         convertedAmount = previousAmount
-        isApplyingConversionResult = false
 
-        currencyPairDidChange()
+        conversionRate = displayedRate(
+            for: fromCurrency,
+            and: toCurrency,
+            using: latestBackendRate
+        )
+        isLoading = false
+        isApplyingConversionResult = false
     }
 
     func dismissNetworkError() {
@@ -162,7 +170,12 @@ final class CurrencyConverterViewModel: ObservableObject {
                     preservesSendingLimitError: request.preservesSendingLimitError
                 )
             case .referenceRate:
-                conversionRate = rate.rate
+                latestBackendRate = rate
+                conversionRate = displayedRate(
+                    for: fromCurrency,
+                    and: toCurrency,
+                    using: rate
+                )
                 errorState = nil
             }
             hasLoaded = true
@@ -187,6 +200,12 @@ final class CurrencyConverterViewModel: ObservableObject {
         preservesSendingLimitError: Bool
     ) {
         isApplyingConversionResult = true
+        latestBackendRate = rate
+        conversionRate = displayedRate(
+            for: fromCurrency,
+            and: toCurrency,
+            using: rate
+        )
 
         if !preservesSendingLimitError {
             errorState = nil
@@ -195,10 +214,8 @@ final class CurrencyConverterViewModel: ObservableObject {
         switch source {
         case .sendingAmount:
             convertedAmount = rate.toAmount
-            conversionRate = rate.rate
         case .receivingAmount:
             amount = rate.toAmount
-            conversionRate = displayedRate(fromReversedRate: rate.rate)
 
             guard let sendingLimit = validator.limit(for: fromCurrency) else {
                 errorState = .conversionFailed
@@ -234,6 +251,7 @@ final class CurrencyConverterViewModel: ObservableObject {
 
     private func clearStaleConversionData(source: ConversionSource) {
         clearCalculatedAmount(source: source)
+        latestBackendRate = nil
         conversionRate = nil
     }
 
@@ -255,6 +273,7 @@ final class CurrencyConverterViewModel: ObservableObject {
             return
         }
 
+        latestBackendRate = nil
         conversionRate = nil
         clearCalculatedAmount(source: .sendingAmount)
 
@@ -362,12 +381,27 @@ final class CurrencyConverterViewModel: ObservableObject {
         return integerValue == value
     }
 
-    private func displayedRate(fromReversedRate rate: Decimal) -> Decimal? {
-        guard rate != 0 else {
+    private func displayedRate(
+        for sourceCurrency: Currency,
+        and targetCurrency: Currency,
+        using backendRate: FXRate?
+    ) -> Decimal? {
+        guard let backendRate else {
             return nil
         }
 
-        return 1 / rate
+        if backendRate.fromCurrency == sourceCurrency,
+           backendRate.toCurrency == targetCurrency {
+            return backendRate.rate
+        }
+
+        guard backendRate.fromCurrency == targetCurrency,
+              backendRate.toCurrency == sourceCurrency,
+              backendRate.rate != 0 else {
+            return nil
+        }
+
+        return 1 / backendRate.rate
     }
 
     private func isCurrentRequest(_ request: ConversionRequest) -> Bool {
