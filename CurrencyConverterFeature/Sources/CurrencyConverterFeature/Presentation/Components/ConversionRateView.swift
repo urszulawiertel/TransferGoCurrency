@@ -20,7 +20,10 @@ struct ConversionRateView: View {
                     CurrencyConverterLocalization.string(
                         .conversionRate,
                         fromCurrency.code,
-                        conversionRate.currencyConverterFormatted(minimumFractionDigits: 2, maximumFractionDigits: 4),
+                        conversionRate.currencyConverterFormatted(
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        ),
                         toCurrency.code
                     )
                 )
@@ -28,13 +31,13 @@ struct ConversionRateView: View {
                 Text(" ")
             }
         }
-        .font(.system(size: 10, weight: .semibold))
+        .font(.system(size: 10, weight: .bold))
+        .monospacedDigit()
         .foregroundStyle(.white)
+        .lineLimit(1)
         .padding(.horizontal, 8)
         .frame(height: 18, alignment: .center)
-        .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(.black)
-        )
+        .fixedSize(horizontal: true, vertical: false)
+        .background(Capsule().fill(.black))
     }
 }

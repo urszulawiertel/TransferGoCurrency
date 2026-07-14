@@ -16,6 +16,71 @@ final class DecimalCurrencyConverterFormattingTests: XCTestCase {
         )
     }
 
+    func testExchangeRateFormattingUsesExactlyTwoFractionalDigits() throws {
+        let value = try XCTUnwrap(Decimal(string: "1", locale: Locale(identifier: "en_US")))
+
+        XCTAssertEqual(
+            value.currencyConverterFormatted(
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                locale: Locale(identifier: "en_US")
+            ),
+            "1.00"
+        )
+    }
+
+    func testExchangeRateFormattingPreservesTrailingZero() throws {
+        let value = try XCTUnwrap(Decimal(string: "7.2", locale: Locale(identifier: "en_US")))
+
+        XCTAssertEqual(
+            value.currencyConverterFormatted(
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                locale: Locale(identifier: "en_US")
+            ),
+            "7.20"
+        )
+    }
+
+    func testExchangeRateFormattingRoundsToTwoFractionalDigits() throws {
+        let value = try XCTUnwrap(Decimal(string: "11.8157", locale: Locale(identifier: "en_US")))
+
+        XCTAssertEqual(
+            value.currencyConverterFormatted(
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                locale: Locale(identifier: "en_US")
+            ),
+            "11.82"
+        )
+    }
+
+    func testExchangeRateFormattingUsesUSDecimalSeparator() throws {
+        let value = try XCTUnwrap(Decimal(string: "11.8157", locale: Locale(identifier: "en_US")))
+
+        XCTAssertEqual(
+            value.currencyConverterFormatted(
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                locale: Locale(identifier: "en_US")
+            ),
+            "11.82"
+        )
+    }
+
+    func testExchangeRateFormattingUsesPolishDecimalSeparator() throws {
+        let value = try XCTUnwrap(Decimal(string: "11.8157", locale: Locale(identifier: "en_US")))
+
+        XCTAssertEqual(
+            value.currencyConverterFormatted(
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+                locale: Locale(identifier: "pl_PL")
+            ),
+            "11,82"
+        )
+    }
+
     func testDecimalParsingAcceptsDotAndCommaSeparators() {
         XCTAssertEqual(Decimal.currencyConverterDecimal(from: "123.45"), 123.45)
         XCTAssertEqual(Decimal.currencyConverterDecimal(from: "123,45"), 123.45)

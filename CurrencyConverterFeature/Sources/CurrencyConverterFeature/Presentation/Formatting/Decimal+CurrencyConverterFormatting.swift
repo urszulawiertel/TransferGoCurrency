@@ -3,13 +3,14 @@ import Foundation
 extension Decimal {
     func currencyConverterFormatted(
         minimumFractionDigits: Int = 0,
-        maximumFractionDigits: Int = 2
+        maximumFractionDigits: Int = 2,
+        locale: Locale = .current
     ) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.minimumFractionDigits = minimumFractionDigits
         formatter.maximumFractionDigits = maximumFractionDigits
-        formatter.locale = .current
+        formatter.locale = locale
 
         return formatter.string(from: self as NSDecimalNumber) ?? "\(self)"
     }
