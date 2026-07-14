@@ -52,7 +52,7 @@ cd CurrencyConverterFeature
 swift test
 ```
 
-This is the verified automated test flow and currently runs 69 XCTest cases.
+This is the verified automated test flow and currently runs 86 XCTest cases.
 
 ### Xcode tests
 
@@ -63,7 +63,7 @@ Tests included in an active Xcode scheme can be run with **Cmd + U**. The shared
 - Live currency conversion using TransferGo FX API
 - Bidirectional conversion (send ↔ receive)
 - Currency selection with search
-- Currency swap
+- Currency swap with a fresh request for the newly directed pair
 - Per-currency sending limits
 - Network error handling
 - Localization support
@@ -117,9 +117,11 @@ Screenshots/
 ## Key implementation decisions
 
 - **`Decimal` for monetary values:** avoids binary floating-point rounding in amounts, limits, and decoded rates.
-- **Locale-aware editing:** input uses the current locale's decimal separator and avoids grouping while editing. Fractional input is shown with validation but is not sent to the integer-only FX endpoint.
+- **Locale-aware editing:** input uses the current locale's decimal separator and avoids grouping while editing. Positive fractional input is accepted and sent to the FX endpoint as the exact `Decimal` value entered by the user.
 - **Stable API serialization:** request amounts use an `en_US_POSIX` representation, independent of the device locale.
 - **Latest-request wins:** a new edit or currency change cancels the previous task, and request identifiers prevent stale responses from updating state.
+- **Rate-based local calculation:** successful responses must match the requested currency pair and contain a positive rate. The exact requested `Decimal` is multiplied by that rate and rounded to two decimal places; response `fromAmount` and `toAmount` values are not used for the final calculation.
+- **Fresh conversion after swap:** currencies and amounts are swapped together and remain visible while a new request runs for the new FROM/TO pair using the exact new FROM amount. Only the fresh current response may replace the displayed rate and converted amount.
 - **Explicit state:** the converter ViewModel exposes loading, conversion-rate, and typed error state to keep Views presentation-focused.
 - **View-owned presentation:** the converter View owns the active currency-selection sheet; conversion rules remain in the ViewModel.
 - **Small package surface:** integration views, domain values, and the service protocol are public while implementation details remain internal.
@@ -127,7 +129,7 @@ Screenshots/
 
 ## Error handling
 
-- **Invalid amount:** invalid locale input is rejected by the editing formatter. Fractional values are retained for correction, show a whole-amount validation error, preserve the last successful conversion, and do not trigger an API request. Non-positive values do not trigger an API request or a sending-limit error.
+- **Invalid amount:** invalid locale input is rejected by the editing formatter. Positive fractional values are accepted and requested exactly using the locale-aware dot or comma editing path. Non-positive values do not trigger an API request or a sending-limit error.
 - **Sending limit exceeded:** the ViewModel exposes the currency-specific limit error and skips a new forward request; the last successful conversion remains visible. Reverse conversions validate the resulting sending amount after the response.
 - **Network or conversion failure:** offline and lost-connection errors show a dismissible network banner. Other service, response, or decoding failures show a generic inline conversion error.
 - **Cancelled or stale request:** cancellation is ignored, and only the latest request may update displayed state.
@@ -135,13 +137,15 @@ Screenshots/
 
 ## Testing
 
-The package contains 69 XCTest cases covering:
+The package contains 86 XCTest cases covering:
 
 - supported currencies and sending limits
 - FX URL construction, locale-independent amount serialization, response decoding, and transport errors
 - initial, forward, and reverse ViewModel conversion behavior
 - currency changes, swapping, loading, and latest-request handling
 - request cancellation and stale-response suppression
+- exact fractional forward and reverse requests, local `Decimal` calculation, and fresh swap responses
+- successful-response currency-pair and positive-rate validation
 - country, currency-name, and currency-code search filtering
 - locale-aware decimal parsing, editing, synchronization, and formatting
 - sending-limit, connectivity, and generic conversion error states
@@ -150,7 +154,7 @@ There are no UI or snapshot tests and no coverage percentage is claimed.
 
 ## Known API behavior
 
-Live verification showed that the API truncates fractional amounts for every supported directed currency pair. The client therefore accepts only whole amounts for conversion and rejects fractional values before networking rather than displaying a result calculated for a different amount.
+Live verification showed that the API accepts fractional query amounts and returns a valid, consistent rate, while its response `fromAmount` is truncated to an integer and `toAmount` is calculated from that truncated value. The client therefore sends the exact user-entered `Decimal`, validates the returned currency pair and positive rate, and calculates the final amount locally as `requested amount × returned rate`, rounded to two decimal places. It does not use response `fromAmount` or `toAmount` for the final calculation.
 
 ## Trade-offs and scope
 
@@ -166,7 +170,6 @@ Live verification showed that the API truncates fractional amounts for every sup
 - Add a CI workflow that runs package tests and verifies both Debug and Release host-app builds.
 - Provide richer retry controls for transient service failures, including a visible retry action and clearer distinction between connectivity, timeout, and server errors.
 - Add localized resources beyond the current English strings.
-- Improve semantic validation of successful API responses by verifying the requested currency pair, positive rate values, and non-negative amounts before applying the result.
 - Add explicit cancellation of in-flight conversion requests when the feature is dismissed.
 - Improve Dynamic Type support and verify the layout at accessibility text sizes and constrained widths.
 - Expand VoiceOver coverage, including descriptive labels, current currency values, focus order, and minimum tap-target sizes.
