@@ -71,8 +71,9 @@ final class CurrencyConverterViewModel: ObservableObject {
             return
         }
 
-        hasLoaded = true
-        fetchConversionIfNeeded(source: .sendingAmount)
+        if !isLoading {
+            fetchConversionIfNeeded(source: .sendingAmount)
+        }
         await conversionTask?.value
     }
 
@@ -165,6 +166,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                 conversionRate = rate.rate
                 errorState = nil
             }
+            hasLoaded = true
             isLoading = false
         } catch is CancellationError {
             return

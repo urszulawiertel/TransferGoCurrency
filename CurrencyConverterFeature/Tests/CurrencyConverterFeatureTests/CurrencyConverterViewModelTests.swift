@@ -40,7 +40,7 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: 300)])
     }
 
-    func testLoadFetchesOnlyOnce() async throws {
+    func testRepeatedLoadAfterSuccessDoesNotFetchAgain() async throws {
         let service = MockFXRatesService()
         let viewModel = CurrencyConverterViewModel(fxRatesService: service)
 
@@ -49,6 +49,82 @@ final class CurrencyConverterViewModelTests: XCTestCase {
 
         let requests = await service.recordedRequests()
         XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: 300)])
+    }
+
+    func testFailedInitialLoadExposesNetworkErrorWithoutConversionData() async throws {
+        let service = MockFXRatesService { _ in
+            throw URLError(.notConnectedToInternet)
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        await viewModel.load()
+
+        XCTAssertEqual(viewModel.errorState, .networkError)
+        XCTAssertTrue(viewModel.isNetworkErrorVisible)
+        XCTAssertNil(viewModel.conversionRate)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+        XCTAssertFalse(viewModel.isLoading)
+        let requests = await service.recordedRequests()
+        XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: 300)])
+    }
+
+    func testFailedInitialLoadCanBeRetriedSuccessfully() async throws {
+        let wrappedService = MockFXRatesService { request in
+            FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: 10,
+                fromAmount: request.amount,
+                toAmount: request.amount * 10
+            )
+        }
+        let service = FailFirstRequestFXRatesService(wrapping: wrappedService)
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        await viewModel.load()
+        XCTAssertEqual(viewModel.errorState, .networkError)
+
+        await viewModel.load()
+
+        XCTAssertNil(viewModel.errorState)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 3_000)
+        let attemptedRequests = await service.attemptedRequestCount()
+        XCTAssertEqual(attemptedRequests, 2)
+        let successfulRequests = await wrappedService.recordedRequests()
+        XCTAssertEqual(successfulRequests, [.init(from: "PLN", to: "UAH", amount: 300)])
+    }
+
+    func testRequestsUseRegularServiceNormallyWithoutSimulation() async throws {
+        let service = MockFXRatesService { request in
+            FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: 10,
+                fromAmount: request.amount,
+                toAmount: request.amount * 10
+            )
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        await viewModel.load()
+        viewModel.amount = 301
+        await waitForIdle(viewModel)
+        viewModel.amount = 302
+        await waitForIdle(viewModel)
+
+        XCTAssertNil(viewModel.errorState)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 3_020)
+        let requests = await service.recordedRequests()
+        XCTAssertEqual(
+            requests,
+            [
+                .init(from: "PLN", to: "UAH", amount: 300),
+                .init(from: "PLN", to: "UAH", amount: 301),
+                .init(from: "PLN", to: "UAH", amount: 302)
+            ]
+        )
     }
 
     func testAmountChangeFetchesConversionAndUpdatesConvertedAmount() async throws {
@@ -558,13 +634,10 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         }
     }
 
-    func testDismissingNetworkErrorClearsOnlyVisibleErrorAndPreservesConversionData() async throws {
-        let service = MockFXRatesService { request in
-            if request.amount == 302 {
-                throw URLError(.notConnectedToInternet)
-            }
-
-            return FXRate(
+#if DEBUG
+    func testSimulatedFailurePreservesConversionAndDismissDoesNotRetry() async throws {
+        let wrappedService = MockFXRatesService { request in
+            FXRate(
                 fromCurrency: request.fromCurrency,
                 toCurrency: request.toCurrency,
                 rate: 10,
@@ -572,27 +645,96 @@ final class CurrencyConverterViewModelTests: XCTestCase {
                 toAmount: request.amount * 10
             )
         }
+        let service = SimulatedNetworkErrorFXRatesService(wrapping: wrappedService)
         let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        await viewModel.load()
+        XCTAssertNil(viewModel.errorState)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 3_000)
 
         viewModel.amount = 301
         await waitForIdle(viewModel)
-        XCTAssertEqual(viewModel.convertedAmount, 3_010)
-        XCTAssertEqual(viewModel.conversionRate, 10)
 
-        viewModel.amount = 302
-        await waitForIdle(viewModel)
         XCTAssertEqual(viewModel.errorState, .networkError)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 3_000)
 
         viewModel.dismissNetworkError()
 
         XCTAssertNil(viewModel.errorState)
         XCTAssertFalse(viewModel.isNetworkErrorVisible)
-        XCTAssertEqual(viewModel.fromCurrency, Currency(code: "PLN"))
-        XCTAssertEqual(viewModel.toCurrency, Currency(code: "UAH"))
-        XCTAssertEqual(viewModel.amount, 302)
-        XCTAssertEqual(viewModel.convertedAmount, 3_010)
+        var requests = await wrappedService.recordedRequests()
+        XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: 300)])
+
+        viewModel.amount = 302
+        await waitForIdle(viewModel)
+
+        XCTAssertNil(viewModel.errorState)
         XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 3_020)
+        requests = await wrappedService.recordedRequests()
+        XCTAssertEqual(
+            requests,
+            [
+                .init(from: "PLN", to: "UAH", amount: 300),
+                .init(from: "PLN", to: "UAH", amount: 302)
+            ]
+        )
     }
+
+    func testDebugNetworkErrorSimulationSucceedsThenFailsOnceThenSucceeds() async throws {
+        let wrappedService = MockFXRatesService { request in
+            FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: 10,
+                fromAmount: request.amount,
+                toAmount: request.amount * 10
+            )
+        }
+        let service = SimulatedNetworkErrorFXRatesService(wrapping: wrappedService)
+        let sourceCurrency = Currency(code: "PLN")
+        let targetCurrency = Currency(code: "UAH")
+
+        let firstRate = try await service.rate(
+            from: sourceCurrency,
+            to: targetCurrency,
+            amount: 300
+        )
+
+        XCTAssertEqual(firstRate.rate, 10)
+        XCTAssertEqual(firstRate.toAmount, 3_000)
+
+        do {
+            _ = try await service.rate(
+                from: sourceCurrency,
+                to: targetCurrency,
+                amount: 301
+            )
+            XCTFail("Expected the second request to simulate a network error.")
+        } catch let error as URLError {
+            XCTAssertEqual(error.code, .notConnectedToInternet)
+        }
+
+        let thirdRate = try await service.rate(
+            from: sourceCurrency,
+            to: targetCurrency,
+            amount: 302
+        )
+
+        XCTAssertEqual(thirdRate.rate, 10)
+        XCTAssertEqual(thirdRate.toAmount, 3_020)
+        let requests = await wrappedService.recordedRequests()
+        XCTAssertEqual(
+            requests,
+            [
+                .init(from: "PLN", to: "UAH", amount: 300),
+                .init(from: "PLN", to: "UAH", amount: 302)
+            ]
+        )
+    }
+#endif
 
     func testSuccessfulRequestAfterConnectivityFailureClearsNetworkError() async throws {
         let service = MockFXRatesService { request in
@@ -786,5 +928,38 @@ private actor MockFXRatesService: FXRatesServicing {
             fromAmount: request.amount,
             toAmount: request.amount
         )
+    }
+}
+
+private actor FailFirstRequestFXRatesService: FXRatesServicing {
+    private let wrappedService: FXRatesServicing
+    private var shouldFail = true
+    private var attemptCount = 0
+
+    init(wrapping wrappedService: FXRatesServicing) {
+        self.wrappedService = wrappedService
+    }
+
+    func rate(
+        from sourceCurrency: Currency,
+        to targetCurrency: Currency,
+        amount: Decimal
+    ) async throws -> FXRate {
+        attemptCount += 1
+
+        if shouldFail {
+            shouldFail = false
+            throw URLError(.notConnectedToInternet)
+        }
+
+        return try await wrappedService.rate(
+            from: sourceCurrency,
+            to: targetCurrency,
+            amount: amount
+        )
+    }
+
+    func attemptedRequestCount() -> Int {
+        attemptCount
     }
 }

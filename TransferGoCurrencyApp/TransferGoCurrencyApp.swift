@@ -23,15 +23,3 @@ struct TransferGoCurrencyApp: App {
 #endif
     }
 }
-
-#if DEBUG
-private struct SimulatedNetworkErrorFXRatesService: FXRatesServicing {
-    func rate(
-        from sourceCurrency: Currency,
-        to targetCurrency: Currency,
-        amount: Decimal
-    ) async throws -> FXRate {
-        throw URLError(.notConnectedToInternet)
-    }
-}
-#endif
