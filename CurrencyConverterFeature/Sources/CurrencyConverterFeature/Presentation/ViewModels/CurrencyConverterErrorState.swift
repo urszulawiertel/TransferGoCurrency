@@ -2,7 +2,6 @@ import Foundation
 
 enum CurrencyConverterErrorState: Equatable {
     case sendingLimitExceeded(currency: Currency, limit: Decimal)
-    case fractionalAmountNotSupported
     case networkError
     case conversionFailed
 
@@ -28,8 +27,6 @@ enum CurrencyConverterErrorState: Equatable {
                 limit.currencyConverterFormatted(),
                 currency.code
             )
-        case .fractionalAmountNotSupported:
-            return CurrencyConverterLocalization.string(.fractionalAmountNotSupported)
         case .networkError:
             return CurrencyConverterLocalization.string(.networkErrorMessage)
         case .conversionFailed:

@@ -6,7 +6,6 @@
 "currency_converter.conversion_rate" = "1 %@ = %@ %@";
 "currency_converter.swap_currencies.accessibility" = "Swap currencies";
 "currency_converter.error.sending_limit_exceeded" = "Maximum sending amount: %@ %@";
-"currency_converter.error.fractional_amount_not_supported" = "Only whole amounts are supported";
 "currency_converter.error.conversion_failed" = "We couldn't convert this amount. Please try again";
 "network_error_title" = "No network";
 "network_error_message" = "Check your internet connection";

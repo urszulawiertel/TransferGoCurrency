@@ -94,8 +94,22 @@ final class CurrencyConverterViewModel: ObservableObject {
             from: fromCurrency,
             to: toCurrency
         )
-        isLoading = false
         isApplyingConversionResult = false
+
+        _ = updateSendingLimitValidation()
+        let preservesSendingLimitError = isSendingLimitExceeded
+        isLoading = true
+
+        if !preservesSendingLimitError {
+            clearNonNetworkError()
+        }
+
+        start(
+            makeConversionRequest(
+                source: .sendingAmount,
+                preservesSendingLimitError: preservesSendingLimitError
+            )
+        )
     }
 
     func dismissNetworkError() {
@@ -137,12 +151,6 @@ final class CurrencyConverterViewModel: ObservableObject {
             return
         }
 
-        guard activeAmount.isWholeAmount else {
-            isLoading = false
-            errorState = .fractionalAmountNotSupported
-            return
-        }
-
         isLoading = true
         clearNonNetworkError()
 
@@ -161,10 +169,17 @@ final class CurrencyConverterViewModel: ObservableObject {
                 return
             }
 
+            guard rate.fromCurrency == request.fromCurrency,
+                  rate.toCurrency == request.toCurrency,
+                  rate.rate > 0 else {
+                throw FXRatesServiceError.invalidResponse
+            }
+
             switch request.purpose {
             case let .conversion(source):
                 apply(
                     rate: rate,
+                    requestedAmount: request.amount,
                     source: source,
                     preservesSendingLimitError: request.preservesSendingLimitError
                 )
@@ -194,9 +209,13 @@ final class CurrencyConverterViewModel: ObservableObject {
 
     private func apply(
         rate: FXRate,
+        requestedAmount: Decimal,
         source: ConversionSource,
         preservesSendingLimitError: Bool
     ) {
+        let exactCalculatedAmount = requestedAmount * rate.rate
+        let calculatedAmount = exactCalculatedAmount.roundedForCurrencyDisplay()
+
         isApplyingConversionResult = true
         latestBackendRate = rate
         conversionRate = rate.displayedRate(
@@ -210,9 +229,9 @@ final class CurrencyConverterViewModel: ObservableObject {
 
         switch source {
         case .sendingAmount:
-            convertedAmount = rate.toAmount
+            convertedAmount = calculatedAmount
         case .receivingAmount:
-            amount = rate.toAmount
+            amount = calculatedAmount
 
             guard let sendingLimit = validator.limit(for: fromCurrency) else {
                 errorState = .conversionFailed
@@ -220,7 +239,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                 return
             }
 
-            if rate.toAmount > sendingLimit {
+            if exactCalculatedAmount > sendingLimit {
                 errorState = .sendingLimitExceeded(
                     currency: fromCurrency,
                     limit: sendingLimit
@@ -285,14 +304,6 @@ final class CurrencyConverterViewModel: ObservableObject {
         invalidatePendingRequest()
         _ = updateSendingLimitValidation()
         let preservesSendingLimitError = isSendingLimitExceeded
-
-        guard amount.isWholeAmount else {
-            isLoading = false
-            if !preservesSendingLimitError {
-                errorState = .fractionalAmountNotSupported
-            }
-            return
-        }
 
         isLoading = true
 
@@ -399,5 +410,14 @@ final class CurrencyConverterViewModel: ObservableObject {
                 preservesSendingLimitError: preservesSendingLimitError
             )
         }
+    }
+}
+
+private extension Decimal {
+    func roundedForCurrencyDisplay() -> Decimal {
+        var value = self
+        var roundedValue = Decimal()
+        NSDecimalRound(&roundedValue, &value, 2, .plain)
+        return roundedValue
     }
 }
