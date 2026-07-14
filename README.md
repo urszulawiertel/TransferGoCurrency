@@ -161,10 +161,18 @@ Live verification showed that the API truncates fractional amounts for every sup
 
 ## Future improvements
 
-- Add UI or snapshot tests for critical presentation states.
-- Add a CI workflow for package tests and the host-app build.
-- Provide richer retry controls for transient service failures.
+- Add explicit handling for same-currency pairs. The provided design allows selecting the same currency on both sides, and the API returns an identity rate of `1`. In a production version, the opposite selected currency could be disabled in the picker and redundant identity-rate requests could be avoided.
+- Add UI or snapshot tests for critical presentation states, including validation errors, loading, network failures, currency selection, and swap behavior.
+- Add a CI workflow that runs package tests and verifies both Debug and Release host-app builds.
+- Provide richer retry controls for transient service failures, including a visible retry action and clearer distinction between connectivity, timeout, and server errors.
 - Add localized resources beyond the current English strings.
+- Improve semantic validation of successful API responses by verifying the requested currency pair, positive rate values, and non-negative amounts before applying the result.
+- Add explicit cancellation of in-flight conversion requests when the feature is dismissed.
+- Improve Dynamic Type support and verify the layout at accessibility text sizes and constrained widths.
+- Expand VoiceOver coverage, including descriptive labels, current currency values, focus order, and minimum tap-target sizes.
+- Add an application icon and automated validation of the built product’s icon metadata before distribution.
+- Refine the public package API so externally injected service implementations can construct and inspect returned domain models without relying on `@testable`.
+- Add broader input validation for extremely large pasted values and ensure displayed input always matches the exact value used in a request.
 
 ## AI usage
 
