@@ -90,10 +90,9 @@ final class CurrencyConverterViewModel: ObservableObject {
         amount = convertedAmount
         convertedAmount = previousAmount
 
-        conversionRate = displayedRate(
-            for: fromCurrency,
-            and: toCurrency,
-            using: latestBackendRate
+        conversionRate = latestBackendRate?.displayedRate(
+            from: fromCurrency,
+            to: toCurrency
         )
         isLoading = false
         isApplyingConversionResult = false
@@ -138,7 +137,7 @@ final class CurrencyConverterViewModel: ObservableObject {
             return
         }
 
-        guard isWholeAmount(activeAmount) else {
+        guard activeAmount.isWholeAmount else {
             isLoading = false
             errorState = .fractionalAmountNotSupported
             return
@@ -171,10 +170,9 @@ final class CurrencyConverterViewModel: ObservableObject {
                 )
             case .referenceRate:
                 latestBackendRate = rate
-                conversionRate = displayedRate(
-                    for: fromCurrency,
-                    and: toCurrency,
-                    using: rate
+                conversionRate = rate.displayedRate(
+                    from: fromCurrency,
+                    to: toCurrency
                 )
                 errorState = nil
             }
@@ -201,10 +199,9 @@ final class CurrencyConverterViewModel: ObservableObject {
     ) {
         isApplyingConversionResult = true
         latestBackendRate = rate
-        conversionRate = displayedRate(
-            for: fromCurrency,
-            and: toCurrency,
-            using: rate
+        conversionRate = rate.displayedRate(
+            from: fromCurrency,
+            to: toCurrency
         )
 
         if !preservesSendingLimitError {
@@ -289,7 +286,7 @@ final class CurrencyConverterViewModel: ObservableObject {
         _ = updateSendingLimitValidation()
         let preservesSendingLimitError = isSendingLimitExceeded
 
-        guard isWholeAmount(amount) else {
+        guard amount.isWholeAmount else {
             isLoading = false
             if !preservesSendingLimitError {
                 errorState = .fractionalAmountNotSupported
@@ -372,36 +369,6 @@ final class CurrencyConverterViewModel: ObservableObject {
         }
 
         errorState = nil
-    }
-
-    private func isWholeAmount(_ value: Decimal) -> Bool {
-        var value = value
-        var integerValue = Decimal()
-        NSDecimalRound(&integerValue, &value, 0, .down)
-        return integerValue == value
-    }
-
-    private func displayedRate(
-        for sourceCurrency: Currency,
-        and targetCurrency: Currency,
-        using backendRate: FXRate?
-    ) -> Decimal? {
-        guard let backendRate else {
-            return nil
-        }
-
-        if backendRate.fromCurrency == sourceCurrency,
-           backendRate.toCurrency == targetCurrency {
-            return backendRate.rate
-        }
-
-        guard backendRate.fromCurrency == targetCurrency,
-              backendRate.toCurrency == sourceCurrency,
-              backendRate.rate != 0 else {
-            return nil
-        }
-
-        return 1 / backendRate.rate
     }
 
     private func isCurrentRequest(_ request: ConversionRequest) -> Bool {

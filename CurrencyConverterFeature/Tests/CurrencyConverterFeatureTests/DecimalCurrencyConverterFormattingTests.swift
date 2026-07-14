@@ -2,6 +2,18 @@ import XCTest
 @testable import CurrencyConverterFeature
 
 final class DecimalCurrencyConverterFormattingTests: XCTestCase {
+    func testWholePositiveDecimalIsWholeAmount() {
+        XCTAssertTrue(Decimal(300).isWholeAmount)
+    }
+
+    func testFractionalDecimalIsNotWholeAmount() {
+        XCTAssertFalse(Decimal(string: "300.5")!.isWholeAmount)
+    }
+
+    func testZeroIsWholeAmount() {
+        XCTAssertTrue(Decimal.zero.isWholeAmount)
+    }
+
     func testFormattedUsesCurrentLocaleAndFractionDigitLimits() throws {
         let value = try XCTUnwrap(Decimal(string: "1234.567", locale: Locale(identifier: "en_US_POSIX")))
         let expectedFormatter = NumberFormatter()

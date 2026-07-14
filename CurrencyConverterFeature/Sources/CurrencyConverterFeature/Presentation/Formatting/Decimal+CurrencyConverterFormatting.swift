@@ -1,6 +1,13 @@
 import Foundation
 
 extension Decimal {
+    var isWholeAmount: Bool {
+        var value = self
+        var integerValue = Decimal()
+        NSDecimalRound(&integerValue, &value, 0, .down)
+        return integerValue == value
+    }
+
     func currencyConverterFormatted(
         minimumFractionDigits: Int = 0,
         maximumFractionDigits: Int = 2,

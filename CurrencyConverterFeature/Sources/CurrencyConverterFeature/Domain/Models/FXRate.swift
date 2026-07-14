@@ -21,3 +21,23 @@ public struct FXRate: Equatable, Sendable {
         self.toAmount = toAmount
     }
 }
+
+extension FXRate {
+    func displayedRate(
+        from sourceCurrency: Currency,
+        to targetCurrency: Currency
+    ) -> Decimal? {
+        if fromCurrency == sourceCurrency,
+           toCurrency == targetCurrency {
+            return rate
+        }
+
+        guard fromCurrency == targetCurrency,
+              toCurrency == sourceCurrency,
+              rate != 0 else {
+            return nil
+        }
+
+        return 1 / rate
+    }
+}
