@@ -393,10 +393,10 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: 300)])
     }
 
-    func testChangingFromCurrencyWhileLimitExceededFetchesAndAppliesNewPair() async throws {
+    func testChangingFromCurrencyWhileNewLimitIsExceededFetchesOnlyReferenceRate() async throws {
         let exceededAmount = try XCTUnwrap(Decimal(string: "20001"))
         let service = MockFXRatesService { request in
-            return FXRate(
+            FXRate(
                 fromCurrency: request.fromCurrency,
                 toCurrency: request.toCurrency,
                 rate: 2,
@@ -414,40 +414,56 @@ final class CurrencyConverterViewModelTests: XCTestCase {
             viewModel.errorState,
             .sendingLimitExceeded(currency: Currency(code: "GBP"), limit: 1_000)
         )
+        XCTAssertEqual(viewModel.amount, exceededAmount)
         XCTAssertEqual(viewModel.conversionRate, 2)
-        XCTAssertEqual(viewModel.convertedAmount, exceededAmount * 2)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+        XCTAssertFalse(viewModel.isLoading)
         let requests = await service.recordedRequests()
-        XCTAssertEqual(requests, [.init(from: "GBP", to: "UAH", amount: exceededAmount)])
+        XCTAssertEqual(requests, [.init(from: "GBP", to: "UAH", amount: 1)])
     }
 
-    func testChangingToCurrencyWhileLimitExceededFetchesAndKeepsSendingLimitError() async throws {
+    func testChangingToCurrencyWhileLimitExceededClearsOldResultAndFetchesOnlyReferenceRate() async throws {
         let exceededAmount = try XCTUnwrap(Decimal(string: "20001"))
         let service = MockFXRatesService { request in
-            FXRate(
+            let rate: Decimal = request.toCurrency == Currency(code: "GBP") ? 3 : 10
+            return FXRate(
                 fromCurrency: request.fromCurrency,
                 toCurrency: request.toCurrency,
-                rate: 3,
+                rate: rate,
                 fromAmount: request.amount,
-                toAmount: request.amount * 3
+                toAmount: request.amount * rate
             )
         }
         let viewModel = CurrencyConverterViewModel(fxRatesService: service)
 
+        viewModel.amount = 1_000
+        await waitForIdle(viewModel)
+        XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 10_000)
+
         viewModel.amount = exceededAmount
+        await service.removeAllRequests()
         viewModel.toCurrency = Currency(code: "GBP")
+
+        XCTAssertNil(viewModel.conversionRate)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+        XCTAssertTrue(viewModel.isLoading)
+
         await waitForIdle(viewModel)
 
         XCTAssertEqual(
             viewModel.errorState,
             .sendingLimitExceeded(currency: Currency(code: "PLN"), limit: 20_000)
         )
+        XCTAssertEqual(viewModel.amount, exceededAmount)
         XCTAssertEqual(viewModel.conversionRate, 3)
-        XCTAssertEqual(viewModel.convertedAmount, exceededAmount * 3)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+        XCTAssertFalse(viewModel.isLoading)
         let requests = await service.recordedRequests()
-        XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: exceededAmount)])
+        XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: 1)])
     }
 
-    func testFailedCurrencyChangeWhileLimitExceededKeepsValidationAndClearsOldPairData() async throws {
+    func testFailedReferenceRateWhileLimitExceededPreservesValidationAndClearsOldPairData() async throws {
         let exceededAmount = try XCTUnwrap(Decimal(string: "20001"))
         let service = MockFXRatesService { request in
             if request.toCurrency == Currency(code: "GBP") {
@@ -470,6 +486,10 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         await service.removeAllRequests()
 
         viewModel.toCurrency = Currency(code: "GBP")
+
+        XCTAssertNil(viewModel.conversionRate)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+
         await waitForIdle(viewModel)
 
         XCTAssertEqual(
@@ -479,30 +499,9 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         XCTAssertFalse(viewModel.isNetworkErrorVisible)
         XCTAssertNil(viewModel.conversionRate)
         XCTAssertEqual(viewModel.convertedAmount, 0)
+        XCTAssertEqual(viewModel.amount, exceededAmount)
         let requests = await service.recordedRequests()
-        XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: exceededAmount)])
-    }
-
-    func testCurrencyChangeResultDoesNotTriggerSecondRequest() async throws {
-        let exceededAmount = try XCTUnwrap(Decimal(string: "20001"))
-        let service = MockFXRatesService { request in
-            FXRate(
-                fromCurrency: request.fromCurrency,
-                toCurrency: request.toCurrency,
-                rate: 2,
-                fromAmount: request.amount,
-                toAmount: request.amount * 2
-            )
-        }
-        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
-
-        viewModel.amount = exceededAmount
-        viewModel.toCurrency = Currency(code: "GBP")
-        await waitForIdle(viewModel)
-
-        let requests = await service.recordedRequests()
-        XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: exceededAmount)])
-        XCTAssertEqual(viewModel.convertedAmount, exceededAmount * 2)
+        XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: 1)])
     }
 
     func testChangingCurrencyClearsPreviousPairsRateUntilNewRateArrives() async throws {
@@ -672,27 +671,38 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         XCTAssertTrue(requests.isEmpty)
     }
 
-    func testCorrectingAmountAfterLimitErrorClearsError() async throws {
+    func testCorrectingAmountAfterOverLimitPairChangeRequestsAndUpdatesConversion() async throws {
         let service = MockFXRatesService { request in
-            FXRate(
+            let rate: Decimal = request.amount == 1 ? 3 : 4
+            return FXRate(
                 fromCurrency: request.fromCurrency,
                 toCurrency: request.toCurrency,
-                rate: 10,
+                rate: rate,
                 fromAmount: request.amount,
-                toAmount: request.amount * 10
+                toAmount: request.amount * rate
             )
         }
         let viewModel = CurrencyConverterViewModel(fxRatesService: service)
 
         viewModel.amount = 20_001
-        viewModel.amount = 20_000
+        viewModel.toCurrency = Currency(code: "GBP")
+        await waitForIdle(viewModel)
+        XCTAssertEqual(
+            viewModel.errorState,
+            .sendingLimitExceeded(currency: Currency(code: "PLN"), limit: 20_000)
+        )
+        XCTAssertEqual(viewModel.conversionRate, 3)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+        await service.removeAllRequests()
+
+        viewModel.amount = 1_000
         await waitForIdle(viewModel)
 
         XCTAssertNil(viewModel.errorState)
-        XCTAssertEqual(viewModel.convertedAmount, 200_000)
-        XCTAssertEqual(viewModel.conversionRate, 10)
+        XCTAssertEqual(viewModel.convertedAmount, 4_000)
+        XCTAssertEqual(viewModel.conversionRate, 4)
         let requests = await service.recordedRequests()
-        XCTAssertEqual(requests, [.init(from: "PLN", to: "UAH", amount: 20_000)])
+        XCTAssertEqual(requests, [.init(from: "PLN", to: "GBP", amount: 1_000)])
     }
 
     func testZeroAmountResetsCalculatedAmountAndPreservesCurrentPairsRate() async throws {
@@ -816,6 +826,44 @@ final class CurrencyConverterViewModelTests: XCTestCase {
         )
         let requests = await service.recordedRequests()
         XCTAssertEqual(requests, [.init(from: "UAH", to: "PLN", amount: 20_001)])
+    }
+
+    func testSwapIntoExceededSendingLimitClearsPairDataAndFetchesOnlyReferenceRate() async throws {
+        let service = MockFXRatesService { request in
+            let rate: Decimal = request.fromCurrency == Currency(code: "GBP") ? 0.5 : 2
+            return FXRate(
+                fromCurrency: request.fromCurrency,
+                toCurrency: request.toCurrency,
+                rate: rate,
+                fromAmount: request.amount,
+                toAmount: request.amount * rate
+            )
+        }
+        let viewModel = CurrencyConverterViewModel(fxRatesService: service)
+
+        viewModel.toCurrency = Currency(code: "GBP")
+        await waitForIdle(viewModel)
+        viewModel.amount = 1_000
+        await waitForIdle(viewModel)
+        XCTAssertEqual(viewModel.convertedAmount, 2_000)
+        XCTAssertEqual(viewModel.conversionRate, 2)
+        await service.removeAllRequests()
+
+        viewModel.swapCurrencies()
+        await waitForIdle(viewModel)
+
+        XCTAssertEqual(viewModel.fromCurrency, Currency(code: "GBP"))
+        XCTAssertEqual(viewModel.toCurrency, Currency(code: "PLN"))
+        XCTAssertEqual(viewModel.amount, 2_000)
+        XCTAssertEqual(viewModel.convertedAmount, 0)
+        XCTAssertEqual(viewModel.conversionRate, 0.5)
+        XCTAssertEqual(
+            viewModel.errorState,
+            .sendingLimitExceeded(currency: Currency(code: "GBP"), limit: 1_000)
+        )
+        XCTAssertFalse(viewModel.isLoading)
+        let requests = await service.recordedRequests()
+        XCTAssertEqual(requests, [.init(from: "GBP", to: "PLN", amount: 1)])
     }
 
     func testSwapPreservesFractionalValuesWhileFreshRequestUpdatesRateAndResult() async throws {

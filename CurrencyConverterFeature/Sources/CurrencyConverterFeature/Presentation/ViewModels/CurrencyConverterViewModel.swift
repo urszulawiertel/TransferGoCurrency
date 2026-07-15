@@ -172,7 +172,10 @@ final class CurrencyConverterViewModel: ObservableObject {
                 )
             case .referenceRate:
                 storeLatestRate(rate)
-                errorState = nil
+
+                if !request.preservesSendingLimitError {
+                    errorState = nil
+                }
             }
             hasLoaded = true
             isLoading = false
@@ -283,19 +286,19 @@ final class CurrencyConverterViewModel: ObservableObject {
     }
 
     private func startCurrencyPairConversion() {
-        _ = updateSendingLimitValidation()
-        let preservesSendingLimitError = isSendingLimitExceeded
+        guard updateSendingLimitValidation() else {
+            clearStaleConversionData(source: .sendingAmount)
+            fetchReferenceRate(preservesSendingLimitError: true)
+            return
+        }
 
         isLoading = true
-
-        if !preservesSendingLimitError {
-            clearNonNetworkError()
-        }
+        clearNonNetworkError()
 
         start(
             makeConversionRequest(
                 source: .sendingAmount,
-                preservesSendingLimitError: preservesSendingLimitError
+                preservesSendingLimitError: false
             )
         )
     }
@@ -322,10 +325,13 @@ final class CurrencyConverterViewModel: ObservableObject {
         return false
     }
 
-    private func fetchReferenceRate() {
+    private func fetchReferenceRate(preservesSendingLimitError: Bool = false) {
         invalidatePendingRequest()
         isLoading = true
-        clearNonNetworkError()
+
+        if !preservesSendingLimitError {
+            clearNonNetworkError()
+        }
 
         start(
             ConversionRequest(
@@ -334,7 +340,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                 toCurrency: toCurrency,
                 amount: 1,
                 purpose: .referenceRate,
-                preservesSendingLimitError: false
+                preservesSendingLimitError: preservesSendingLimitError
             )
         )
     }
