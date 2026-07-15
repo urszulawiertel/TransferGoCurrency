@@ -96,20 +96,7 @@ final class CurrencyConverterViewModel: ObservableObject {
         )
         isApplyingConversionResult = false
 
-        _ = updateSendingLimitValidation()
-        let preservesSendingLimitError = isSendingLimitExceeded
-        isLoading = true
-
-        if !preservesSendingLimitError {
-            clearNonNetworkError()
-        }
-
-        start(
-            makeConversionRequest(
-                source: .sendingAmount,
-                preservesSendingLimitError: preservesSendingLimitError
-            )
-        )
+        startCurrencyPairConversion()
     }
 
     func dismissNetworkError() {
@@ -184,11 +171,7 @@ final class CurrencyConverterViewModel: ObservableObject {
                     preservesSendingLimitError: request.preservesSendingLimitError
                 )
             case .referenceRate:
-                latestBackendRate = rate
-                conversionRate = rate.displayedRate(
-                    from: fromCurrency,
-                    to: toCurrency
-                )
+                storeLatestRate(rate)
                 errorState = nil
             }
             hasLoaded = true
@@ -217,11 +200,9 @@ final class CurrencyConverterViewModel: ObservableObject {
         let calculatedAmount = exactCalculatedAmount.roundedForCurrencyDisplay()
 
         isApplyingConversionResult = true
-        latestBackendRate = rate
-        conversionRate = rate.displayedRate(
-            from: fromCurrency,
-            to: toCurrency
-        )
+        defer { isApplyingConversionResult = false }
+
+        storeLatestRate(rate)
 
         if !preservesSendingLimitError {
             errorState = nil
@@ -235,7 +216,6 @@ final class CurrencyConverterViewModel: ObservableObject {
 
             guard let sendingLimit = validator.limit(for: fromCurrency) else {
                 errorState = .conversionFailed
-                isApplyingConversionResult = false
                 return
             }
 
@@ -246,8 +226,6 @@ final class CurrencyConverterViewModel: ObservableObject {
                 )
             }
         }
-
-        isApplyingConversionResult = false
     }
 
     private func activeAmount(for source: ConversionSource) -> Decimal {
@@ -273,6 +251,7 @@ final class CurrencyConverterViewModel: ObservableObject {
 
     private func clearCalculatedAmount(source: ConversionSource) {
         isApplyingConversionResult = true
+        defer { isApplyingConversionResult = false }
 
         switch source {
         case .sendingAmount:
@@ -280,8 +259,6 @@ final class CurrencyConverterViewModel: ObservableObject {
         case .receivingAmount:
             amount = 0
         }
-
-        isApplyingConversionResult = false
     }
 
     private func currencyPairDidChange() {
@@ -302,6 +279,10 @@ final class CurrencyConverterViewModel: ObservableObject {
 
     private func fetchConversionForCurrencyPairChange() {
         invalidatePendingRequest()
+        startCurrencyPairConversion()
+    }
+
+    private func startCurrencyPairConversion() {
         _ = updateSendingLimitValidation()
         let preservesSendingLimitError = isSendingLimitExceeded
 
@@ -342,10 +323,6 @@ final class CurrencyConverterViewModel: ObservableObject {
     }
 
     private func fetchReferenceRate() {
-        guard !isApplyingConversionResult else {
-            return
-        }
-
         invalidatePendingRequest()
         isLoading = true
         clearNonNetworkError()
@@ -382,6 +359,14 @@ final class CurrencyConverterViewModel: ObservableObject {
         errorState = nil
     }
 
+    private func storeLatestRate(_ rate: FXRate) {
+        latestBackendRate = rate
+        conversionRate = rate.displayedRate(
+            from: fromCurrency,
+            to: toCurrency
+        )
+    }
+
     private func isCurrentRequest(_ request: ConversionRequest) -> Bool {
         !Task.isCancelled && latestRequestID == request.id
     }
@@ -390,26 +375,23 @@ final class CurrencyConverterViewModel: ObservableObject {
         source: ConversionSource,
         preservesSendingLimitError: Bool
     ) -> ConversionRequest {
+        let requestCurrencies: (from: Currency, to: Currency)
+
         switch source {
         case .sendingAmount:
-            return ConversionRequest(
-                id: UUID(),
-                fromCurrency: fromCurrency,
-                toCurrency: toCurrency,
-                amount: amount,
-                purpose: .conversion(source),
-                preservesSendingLimitError: preservesSendingLimitError
-            )
+            requestCurrencies = (fromCurrency, toCurrency)
         case .receivingAmount:
-            return ConversionRequest(
-                id: UUID(),
-                fromCurrency: toCurrency,
-                toCurrency: fromCurrency,
-                amount: convertedAmount,
-                purpose: .conversion(source),
-                preservesSendingLimitError: preservesSendingLimitError
-            )
+            requestCurrencies = (toCurrency, fromCurrency)
         }
+
+        return ConversionRequest(
+            id: UUID(),
+            fromCurrency: requestCurrencies.from,
+            toCurrency: requestCurrencies.to,
+            amount: activeAmount(for: source),
+            purpose: .conversion(source),
+            preservesSendingLimitError: preservesSendingLimitError
+        )
     }
 }
 
